@@ -48,6 +48,13 @@ Regular users can download packaged builds from the GitHub Releases page:
 
 - `Releases` on `hosioobo/CleanMD`
 
+### Run the App
+
+1. Download the latest release from GitHub Releases.
+2. Unzip `CleanMD-v0.7.0-macOS.zip`.
+3. Move `CleanMD.app` to your Applications folder if desired.
+4. Open `CleanMD.app`.
+
 Early releases are packaged and ad-hoc signed for convenience, but they are not notarized yet. macOS Gatekeeper may show a warning the first time you open the app.
 
 ## Build From Source
