@@ -16,6 +16,17 @@ CleanMD is a native macOS Markdown editor focused on speed, simplicity, and a cl
 - Drag and drop Markdown files into the app
 - Customizable preview color palette and heading dividers
 
+## Screenshots
+
+Use `SCREENSHOT_DEMO.md` as the source document for screenshots. It includes headings, lists, code blocks, tables, blockquotes, links, and math so the app preview shows a representative spread of formatting in one file.
+
+Recommended captures:
+
+- full split view with editor and preview
+- code highlighting section
+- table and math section
+- palette customization panel
+
 ## Requirements
 
 - macOS 13 or later
