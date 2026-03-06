@@ -58,7 +58,7 @@ Please keep the app lightweight and offline-friendly. If you change bundled thir
 
 ## Release Notes
 
-The first public release is planned as `v0.1.0` and will include:
+The first public release is planned as `v0.7.0` and will include:
 
 - source code for contributors
 - a zipped macOS app for download
