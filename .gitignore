@@ -1,0 +1,14 @@
+.DS_Store
+.build/
+.claude/
+CleanMD.app/
+
+# Internal agent guidance
+CLAUDE.md
+
+# Release artifacts
+*.zip
+
+# Editor and OS noise
+*.swp
+*.tmp
