@@ -1,25 +1,15 @@
 # CleanMD Dark Mode
 
-Dark mode keeps the same split view while emphasizing code, tables, and math.
+Dark mode keeps the same split view while emphasizing structure, tables, and math.
 
-## Mixed Content
+## Comparison Table
 
-Preview supports paragraphs, links, and block-level structure without leaving the native app.
-
-### Quote
-
-> CleanMD is designed for a focused Markdown workflow with just enough power in the preview.
-
-### Nested List
-
-1. Draft
-   - Notes
-   - Docs
-   - Posts
-2. Review
-   - Tables
-   - Equations
-   - Code blocks
+| Area | Focus | Result |
+|---|---|---|
+| Editor | Plain text input | Fast writing |
+| Preview | Styled Markdown output | Immediate feedback |
+| Sync | Optional linked scrolling | Easy review |
+| Assets | Bundled locally | Offline rendering |
 
 ## Math
 
@@ -29,25 +19,17 @@ $$
 \int_{0}^{1} x^2 \, dx = \frac{1}{3}
 $$
 
-$$
-\nabla \cdot \vec{E} = \frac{\rho}{\varepsilon_0}
-$$
+## Quote
 
-## More Code
+> CleanMD is designed for a focused Markdown workflow with just enough power in the preview.
 
-```bash
-swift build -c release
-./build.sh
-```
+## Nested List
 
-## Comparison Table
+1. Draft
+   - Notes
+   - Docs
+2. Review
+   - Tables
+   - Equations
 
-| Area | Focus |
-|---|---|
-| Editor | Plain text input |
-| Preview | Styled Markdown output |
-| Sync | Optional linked scrolling |
-
----
-
-Use this document for the darker README screenshot that highlights equations and structure.
+Use this document for the dark README screenshot that highlights tables.
