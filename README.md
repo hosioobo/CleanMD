@@ -18,13 +18,15 @@ CleanMD is a native macOS Markdown editor focused on speed, simplicity, and a cl
 
 ## Screenshots
 
-Use `SCREENSHOT_DEMO.md` as the source document for screenshots. It includes headings, lists, code blocks, tables, blockquotes, links, and math so the app preview shows a representative spread of formatting in one file.
+Use the two bundled screenshot documents so light mode and dark mode each show a different part of the app without scrolling:
+
+- `SCREENSHOT_LIGHT.md`
+- `SCREENSHOT_DARK.md`
 
 Recommended captures:
 
-- full split view with editor and preview
-- code highlighting section
-- table and math section
+- light mode full split view using `SCREENSHOT_LIGHT.md`
+- dark mode full split view using `SCREENSHOT_DARK.md`
 - palette customization panel
 
 ## Requirements
