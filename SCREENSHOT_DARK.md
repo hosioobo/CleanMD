@@ -13,11 +13,9 @@ Dark mode keeps the same split view while emphasizing structure, tables, and mat
 
 ## Math
 
-Inline math: $E = mc^2$
+Inline math: \\(E = mc^2\\)
 
-$$
-\int_{0}^{1} x^2 \, dx = \frac{1}{3}
-$$
+\\[\int_{0}^{1} x^2 \, dx = \frac{1}{3}\\]
 
 ## Quote
 
