@@ -29,6 +29,14 @@ Recommended captures:
 - dark mode full split view using `SCREENSHOT_DARK.md`
 - palette customization panel
 
+### Light Mode
+
+![CleanMD light mode](screenshots/light-mode.png)
+
+### Dark Mode
+
+![CleanMD dark mode](screenshots/dark-mode.png)
+
 ## Requirements
 
 - macOS 13 or later
