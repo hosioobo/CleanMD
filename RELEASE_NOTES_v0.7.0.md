@@ -1,4 +1,4 @@
-# CleanMD v0.1.0
+# CleanMD v0.7.0
 
 First public release of CleanMD.
 
