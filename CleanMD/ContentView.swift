@@ -90,27 +90,38 @@ struct ContentView: View {
 // MARK: - No-Divider HSplitView
 
 /// NSSplitView subclass whose divider is invisible but still 1 pt wide for dragging.
-private class NoDividerSplitView: NSSplitView, NSSplitViewDelegate {
-    private let minPaneWidth: CGFloat = 200
+private final class NoDividerSplitView: NSSplitView {
+    // Keep the delegate separate from the split view itself to avoid AppKit
+    // sidebar responder recursion during menu validation on newer macOS builds.
+    private let splitDelegate = LayoutDelegate()
+
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        delegate = splitDelegate
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        delegate = splitDelegate
+    }
 
     override func drawDivider(in rect: NSRect) { /* invisible */ }
     override var dividerThickness: CGFloat { 1 }
 
-    override func awakeFromNib() {
-        super.awakeFromNib()
-        delegate = self
-    }
+    private final class LayoutDelegate: NSObject, NSSplitViewDelegate {
+        private let minPaneWidth: CGFloat = 200
 
-    func splitView(_ splitView: NSSplitView,
-                   constrainMinCoordinate proposed: CGFloat,
-                   ofSubviewAt index: Int) -> CGFloat {
-        max(proposed, minPaneWidth)
-    }
+        func splitView(_ splitView: NSSplitView,
+                       constrainMinCoordinate proposed: CGFloat,
+                       ofSubviewAt index: Int) -> CGFloat {
+            max(proposed, minPaneWidth)
+        }
 
-    func splitView(_ splitView: NSSplitView,
-                   constrainMaxCoordinate proposed: CGFloat,
-                   ofSubviewAt index: Int) -> CGFloat {
-        min(proposed, splitView.bounds.width - minPaneWidth)
+        func splitView(_ splitView: NSSplitView,
+                       constrainMaxCoordinate proposed: CGFloat,
+                       ofSubviewAt index: Int) -> CGFloat {
+            min(proposed, splitView.bounds.width - minPaneWidth)
+        }
     }
 }
 
@@ -122,7 +133,6 @@ private struct NoDividerHSplitView<L: View, R: View>: NSViewRepresentable {
         let sv = NoDividerSplitView()
         sv.isVertical   = true
         sv.dividerStyle = .thin
-        sv.delegate     = sv
 
         let lh = NSHostingView(rootView: left)
         let rh = NSHostingView(rootView: right)
@@ -288,7 +298,7 @@ private struct TitleBarIcons: View {
                 .foregroundStyle(.secondary)
                 .opacity(syncHover ? 0.45 : 1.0)
                 .contentShape(Rectangle())
-                .onTapGesture { scrollSync.isLinked.toggle() }
+                .onTapGesture { scrollSync.toggleLinking() }
                 .onHover { syncHover = $0 }
 
             // Dark / light toggle
