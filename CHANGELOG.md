@@ -4,7 +4,10 @@ All notable project updates are tracked here.
 
 ## Unreleased
 
-_No changes yet._
+### Added
+
+- `scripts/release.sh` to run the validated GitHub release flow end-to-end from reviewed metadata.
+- GitHub Actions CI workflow for package tests, smoke tests, and app bundle builds on macOS.
 
 ## v0.8.0 — 2026-03-19
 

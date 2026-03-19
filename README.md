@@ -98,7 +98,9 @@ Please keep the app lightweight and offline-friendly. If you change bundled thir
 - Versioning policy and release checklist: [`VERSIONING.md`](VERSIONING.md)
 - Prepare release metadata: `./scripts/prepare-release.sh <version> <build>`
 - Build a versioned release zip: `./scripts/package-release.sh`
+- Run the full GitHub release flow: `./scripts/release.sh <version> <build>`
 - Create the GitHub Release: `./scripts/create-github-release.sh <version>`
+- CI runs on GitHub Actions via [`.github/workflows/ci.yml`](.github/workflows/ci.yml)
 
 ## License
 
