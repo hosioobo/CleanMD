@@ -177,8 +177,26 @@ struct PreviewView: NSViewRepresentable {
         }
         ul, ol { padding-left: 1.75em; margin-bottom: 1.02em; }
         li + li { margin-top: 0.22em; }
-        table { border-collapse: collapse; margin-bottom: 1.08em; width: 100%; }
-        table th, table td { border: 1px solid var(--table-border); padding: 8px 12px; }
+        table {
+            border-collapse: collapse;
+            margin-bottom: 1.08em;
+            width: 100%;
+            table-layout: fixed;
+        }
+        table th, table td {
+            border: 1px solid var(--table-border);
+            padding: 8px 12px;
+            text-align: left;
+            vertical-align: top;
+            line-height: 1.5;
+            overflow-wrap: anywhere;
+            word-break: break-word;
+        }
+        table code {
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+            word-break: break-word;
+        }
         table tr:nth-child(2n) { background-color: var(--table-alt); }
         img { max-width: 100%; }
         hr { border: none; border-top: 1px solid var(--hr-border); margin: 1.8em 0; }
@@ -627,24 +645,34 @@ struct PreviewView: NSViewRepresentable {
         }
 
         func scheduleRender(text: String, previewMode: PreviewMode) {
-            let renderKey = Self.renderKey(text: text, previewMode: previewMode)
+            let normalizedText = Self.normalizedText(text: text, previewMode: previewMode)
+            let renderKey = Self.renderKey(text: normalizedText, previewMode: previewMode)
             guard renderKey != queuedRenderKey, renderKey != lastRenderedRenderKey else { return }
             queuedRenderKey = renderKey
-            pendingText = text
+            pendingText = normalizedText
             pendingPreviewMode = previewMode
             debounceTimer?.invalidate()
             guard isLoaded, let webView else { return }
             debounceTimer = Timer.scheduledTimer(
-                withTimeInterval: debounceInterval(for: text),
+                withTimeInterval: debounceInterval(for: normalizedText),
                 repeats: false
             ) { [weak self, weak webView] _ in
                 guard let self, let webView else { return }
-                self.render(text: text, previewMode: previewMode, in: webView)
+                self.render(text: normalizedText, previewMode: previewMode, in: webView)
             }
         }
 
         private static func renderKey(text: String, previewMode: PreviewMode) -> String {
             "\(previewMode.renderKey)|\(text)"
+        }
+
+        private static func normalizedText(text: String, previewMode: PreviewMode) -> String {
+            switch previewMode {
+            case .markdown:
+                return MarkdownTableNormalizer.normalize(text)
+            case .code:
+                return text
+            }
         }
 
         private func debounceInterval(for text: String) -> TimeInterval {
