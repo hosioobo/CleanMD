@@ -1,13 +1,12 @@
 # CleanMD v0.8.0
 
-Draft release notes for the next feature release.
-
 ## Highlights
 
 - New file explorer sidebar with **Files** and **History** tabs
 - YAML (`.yml`, `.yaml`) open and preview support
 - Better Markdown table rendering and recent-file navigation
 - Safer preview link handling for local and unsupported URLs
+- Structured GitHub-only release workflow with helper scripts
 
 ## Included
 
@@ -26,4 +25,3 @@ Draft release notes for the next feature release.
 
 - Packaged builds are currently created locally and ad-hoc signed.
 - The app is not notarized yet, so macOS Gatekeeper may show a warning on first launch.
-- This note can be used as the starting point for the future GitHub Release body.

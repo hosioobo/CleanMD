@@ -4,12 +4,17 @@ All notable project updates are tracked here.
 
 ## Unreleased
 
+_No changes yet._
+
+## v0.8.0 — 2026-03-19
+
 ### Added
 
 - File explorer sidebar with **Files** and **History** tabs for faster navigation.
 - Support for opening and previewing `.yml` and `.yaml` files with preserved formatting.
 - Smoke test script and coverage for file explorer, recent history, supported file types, and table normalization.
 - Refreshed light/dark screenshots and end-user install guidance for GitHub visitors.
+- Release helper scripts for preparing version metadata, packaging versioned zip builds, and creating GitHub Releases.
 
 ### Improved
 
