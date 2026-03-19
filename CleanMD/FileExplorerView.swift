@@ -3,12 +3,26 @@ import AppKit
 
 struct FileExplorerView: View {
     @ObservedObject var store: FileExplorerStore
+    @Binding var isCollapsed: Bool
 
-    init(store: FileExplorerStore) {
+    init(store: FileExplorerStore, isCollapsed: Binding<Bool>) {
         _store = ObservedObject(wrappedValue: store)
+        _isCollapsed = isCollapsed
     }
 
     var body: some View {
+        Group {
+            if isCollapsed {
+                collapsedSidebar
+            } else {
+                expandedSidebar
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .background(Color(nsColor: .windowBackgroundColor))
+    }
+
+    private var expandedSidebar: some View {
         VStack(spacing: 0) {
             tabBar
             Divider()
@@ -18,8 +32,15 @@ struct FileExplorerView: View {
             }
             content
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background(Color(nsColor: .windowBackgroundColor))
+    }
+
+    private var collapsedSidebar: some View {
+        VStack(spacing: 0) {
+            toggleButton(isCollapsed: true)
+                .padding(.top, 8)
+            Spacer(minLength: 0)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
 
     private var tabBar: some View {
@@ -41,6 +62,8 @@ struct FileExplorerView: View {
             }
 
             Spacer(minLength: 0)
+
+            toggleButton(isCollapsed: false)
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 8)
@@ -164,5 +187,19 @@ struct FileExplorerView: View {
         .buttonStyle(.plain)
         .help(label)
         .accessibilityLabel(label)
+    }
+
+    private func toggleButton(isCollapsed: Bool) -> some View {
+        Button {
+            self.isCollapsed.toggle()
+        } label: {
+            Image(systemName: "sidebar.left")
+                .font(.system(size: 12.5, weight: .semibold))
+                .foregroundStyle(Color.secondary)
+                .frame(width: 24, height: 24)
+        }
+        .buttonStyle(.plain)
+        .help(isCollapsed ? "Show Sidebar" : "Hide Sidebar")
+        .accessibilityLabel(isCollapsed ? "Show Sidebar" : "Hide Sidebar")
     }
 }

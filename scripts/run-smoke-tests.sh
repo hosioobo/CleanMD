@@ -19,6 +19,7 @@ swiftc \
   "$PROJECT_DIR/CleanMD/SupportedDocumentKind.swift" \
   "$PROJECT_DIR/CleanMD/PathDisplayFormatter.swift" \
   "$PROJECT_DIR/CleanMD/MarkdownTableNormalizer.swift" \
+  "$PROJECT_DIR/CleanMD/RecentDocumentHistory.swift" \
   "$PROJECT_DIR/CleanMD/FileExplorerStore.swift" \
   "$PROJECT_DIR/scripts/SmokeTestsMain.swift" \
   -o "$OUT"

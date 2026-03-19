@@ -295,6 +295,30 @@ final class FileExplorerStoreTests: XCTestCase {
         XCTAssertEqual(formatter.parentPath(for: fileURL), "~/Projects/CleanMD")
     }
 
+    func testUpdatingCurrentFileRecordsRecentDocument() throws {
+        let folder = try makeTempDirectory()
+        let file = folder.appendingPathComponent("note.md")
+        try "hello".write(to: file, atomically: true, encoding: .utf8)
+
+        var recordedURL: URL?
+        let store = FileExplorerStore(
+            currentFileURL: nil,
+            dependencies: .init(
+                contentsOfDirectory: { _ in [] },
+                recentDocumentURLs: { [] },
+                openURL: { _ in },
+                recordRecentDocumentURL: { recordedURL = $0 },
+                pathSubtitle: { _ in "" },
+                isReadableSupportedFile: { SupportedDocumentKind.isSupportedReadableFile(url: $0) },
+                isDirectory: { _ in false }
+            )
+        )
+
+        store.updateCurrentFileURL(file)
+
+        XCTAssertEqual(recordedURL, file.standardizedFileURL)
+    }
+
     private func makeTempDirectory() throws -> URL {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
         try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
