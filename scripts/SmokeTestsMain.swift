@@ -43,6 +43,21 @@ func testPathDisplayFormatter() throws {
     )
 }
 
+func testMarkdownTableNormalizer() throws {
+    let markdown = """
+    | 항목 | Raw | OMX | 판정 |
+    | --- | --- | --- | --- |
+    | 스크린샷 증거 | 페이지 상태 스크린샷 3장만 있음: lanes/raw/notes/screenshots/curriculum-3-guest-initial.png, lanes/raw/notes/
+    screenshots/curriculum-3-guest-post-sell.png, 화면상 UI 증거는 안 보임 | 전/후 스크린샷 2장과 실제 결과 PNG 3장 있음 | omx 우세 |
+    """
+
+    let normalized = MarkdownTableNormalizer.normalize(markdown)
+    let lines = normalized.components(separatedBy: "\n")
+
+    try expect(lines.count == 3, "broken table row should be merged back into a single markdown row")
+    try expect(lines[2].contains("lanes/raw/notes/ screenshots/curriculum-3-guest-post-sell.png"), "continued table cell content should stay in the same row")
+}
+
 func testFileExplorerStore() throws {
     let folder = try makeTempDirectory()
     defer { try? FileManager.default.removeItem(at: folder) }
@@ -111,6 +126,7 @@ enum SmokeTestsMain {
         let tests: [(String, () throws -> Void)] = [
             ("SupportedDocumentKind", testSupportedDocumentKind),
             ("PathDisplayFormatter", testPathDisplayFormatter),
+            ("MarkdownTableNormalizer", testMarkdownTableNormalizer),
             ("FileExplorerStore", testFileExplorerStore)
         ]
 
