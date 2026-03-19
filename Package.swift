@@ -11,6 +11,11 @@ let package = Package(
             resources: [
                 .copy("Resources")
             ]
+        ),
+        .testTarget(
+            name: "CleanMDTests",
+            dependencies: ["CleanMD"],
+            path: "CleanMDTests"
         )
     ]
 )

@@ -4,7 +4,9 @@ import UniformTypeIdentifiers
 
 struct ContentView: View {
     @Binding var document: MarkdownDocument
-    @StateObject private var scrollSync = ScrollSyncController()
+    let fileURL: URL?
+    @StateObject private var scrollSync: ScrollSyncController
+    @StateObject private var fileExplorerStore: FileExplorerStore
     @AppStorage("isDarkMode") private var isDarkMode: Bool = false
     @State private var isColorPanelVisible: Bool = false
     @State private var isDragTargeted = false
@@ -12,30 +14,49 @@ struct ContentView: View {
     // which propagates the new palette + version params to the NSViewRepresentables.
     @ObservedObject private var colorSettings = ColorSettings.shared
 
+    init(document: Binding<MarkdownDocument>, fileURL: URL?) {
+        self._document = document
+        self.fileURL = fileURL
+        _scrollSync = StateObject(wrappedValue: ScrollSyncController())
+        _fileExplorerStore = StateObject(
+            wrappedValue: FileExplorerStore(currentFileURL: fileURL)
+        )
+    }
+
     var body: some View {
         NoDividerHSplitView(
-            left: EditorView(
-                text: $document.text,
-                scrollSync: scrollSync,
-                isDarkMode: isDarkMode,
-                palette: colorSettings.palette(isDark: isDarkMode)
+            left: FileExplorerView(store: fileExplorerStore)
+                .frame(minWidth: 200, idealWidth: 220, maxWidth: 280),
+            right: NoDividerHSplitView(
+                left: EditorView(
+                    text: $document.text,
+                    scrollSync: scrollSync,
+                    isDarkMode: isDarkMode,
+                    palette: colorSettings.palette(isDark: isDarkMode)
+                ),
+                right: PreviewView(
+                    text: document.text,
+                    scrollSync: scrollSync,
+                    isDarkMode: isDarkMode,
+                    palette: colorSettings.palette(isDark: isDarkMode),
+                    showH1Divider: colorSettings.showH1Divider,
+                    showH2Divider: colorSettings.showH2Divider,
+                    fileURL: fileURL
+                )
             ),
-            right: PreviewView(
-                text: document.text,
-                scrollSync: scrollSync,
-                isDarkMode: isDarkMode,
-                palette: colorSettings.palette(isDark: isDarkMode),
-                showH1Divider: colorSettings.showH1Divider,
-                showH2Divider: colorSettings.showH2Divider
-            )
         )
         .preferredColorScheme(isDarkMode ? .dark : .light)
         .background(WindowConfigurator(
             scrollSync: scrollSync,
             isColorPanelVisible: $isColorPanelVisible
         ))
+        .onAppear {
+            fileExplorerStore.updateCurrentFileURL(fileURL)
+        }
+        .onChange(of: fileURL) { newValue in
+            fileExplorerStore.updateCurrentFileURL(newValue)
+        }
         .onDrop(of: [UTType.fileURL], isTargeted: $isDragTargeted) { providers in
-            let validExtensions = ["md", "markdown"]
             for provider in providers {
                 provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { item, _ in
                     var fileURL: URL?
@@ -45,7 +66,7 @@ struct ContentView: View {
                         fileURL = url
                     }
                     guard let url = fileURL,
-                          validExtensions.contains(url.pathExtension.lowercased()) else { return }
+                          SupportedDocumentKind.isSupportedReadableFile(url: url) else { return }
                     DispatchQueue.main.async {
                         NSDocumentController.shared.openDocument(
                             withContentsOf: url, display: true) { _, _, _ in }

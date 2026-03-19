@@ -5,6 +5,10 @@ extension UTType {
     static var markdownFile: UTType {
         UTType(importedAs: "net.daringfireball.markdown")
     }
+
+    static var yamlFile: UTType {
+        UTType(importedAs: "com.cleanmd.yaml")
+    }
 }
 
 struct MarkdownDocument: FileDocument {
@@ -15,7 +19,7 @@ struct MarkdownDocument: FileDocument {
     }
 
     static var readableContentTypes: [UTType] {
-        [.markdownFile, UTType(filenameExtension: "md") ?? .plainText]
+        [.markdownFile, .yamlFile]
     }
 
     init(configuration: ReadConfiguration) throws {

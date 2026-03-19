@@ -7,13 +7,15 @@ CleanMD is a native macOS Markdown editor focused on speed, simplicity, and a cl
 ## Features
 
 - Native macOS app built with SwiftUI and AppKit
-- Split editor and live preview
+- Three-pane layout with file explorer, editor, and live preview
+- Folder and History explorer tabs with icon-first navigation
 - Syntax highlighting for fenced code blocks
 - KaTeX-powered math rendering
+- YAML files render in a code preview with preserved indentation
 - Optional synchronized scrolling between editor and preview
 - Offline-first bundled renderer assets
-- Opens and saves `.md` and `.markdown` files
-- Drag and drop Markdown files into the app
+- Opens `.md`, `.markdown`, `.yml`, and `.yaml` files
+- Drag and drop supported text documents into the app
 - Customizable preview color palette and heading dividers
 
 ## Screenshots
@@ -60,11 +62,12 @@ Early releases are packaged and ad-hoc signed for convenience, but they are not 
 ## Build From Source
 
 ```bash
-swift build -c release
-./build.sh
+swift build --disable-sandbox -c release
+./scripts/run-smoke-tests.sh
+NO_OPEN=1 ./build.sh
 ```
 
-`./build.sh` builds the app, packages `CleanMD.app` in the repository root, copies the bundled web assets, applies ad-hoc signing, and launches the app.
+This project is built with Swift Package Manager and a shell packaging script — there is no Xcode project required. `./build.sh` builds the executable, packages `CleanMD.app` in the repository root, copies the bundled web assets, applies ad-hoc signing, and launches the app. Use `NO_OPEN=1` to skip launching the app in headless or sandboxed environments.
 
 ## Project Structure
 
