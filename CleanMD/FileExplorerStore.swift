@@ -21,6 +21,7 @@ final class FileExplorerStore: ObservableObject {
         var contentsOfDirectory: (URL) throws -> [URL]
         var recentDocumentURLs: () -> [URL]
         var openURL: (URL) -> Void
+        var recordRecentDocumentURL: (URL) -> Void = { _ in }
         var pathSubtitle: (URL) -> String
         var isReadableSupportedFile: (URL) -> Bool
         var isDirectory: (URL) -> Bool
@@ -36,10 +37,13 @@ final class FileExplorerStore: ObservableObject {
                     )
                 },
                 recentDocumentURLs: {
-                    NSDocumentController.shared.recentDocumentURLs
+                    RecentDocumentHistory.shared.mergedWithSystemRecentDocuments()
                 },
                 openURL: { url in
                     NSDocumentController.shared.openDocument(withContentsOf: url, display: true) { _, _, _ in }
+                },
+                recordRecentDocumentURL: { url in
+                    RecentDocumentHistory.shared.record(url)
                 },
                 pathSubtitle: { url in
                     pathFormatter.parentPath(for: url)
@@ -71,12 +75,14 @@ final class FileExplorerStore: ObservableObject {
         self.currentFileURL = currentFileURL?.standardizedFileURL
         self.currentFolderURL = currentFileURL?.standardizedFileURL.deletingLastPathComponent()
         self.dependencies = dependencies
+        recordCurrentFileIfNeeded()
         refresh()
     }
 
     func updateCurrentFileURL(_ url: URL?) {
         currentFileURL = url?.standardizedFileURL
         currentFolderURL = url?.standardizedFileURL.deletingLastPathComponent()
+        recordCurrentFileIfNeeded()
         refresh()
     }
 
@@ -195,6 +201,12 @@ final class FileExplorerStore: ObservableObject {
 
     private static func normalizedFileURL(_ url: URL) -> URL {
         url.standardizedFileURL
+    }
+
+    private func recordCurrentFileIfNeeded() {
+        guard let currentFileURL else { return }
+        guard dependencies.isReadableSupportedFile(currentFileURL) else { return }
+        dependencies.recordRecentDocumentURL(currentFileURL)
     }
 
     private static func isDirectory(_ url: URL) -> Bool {

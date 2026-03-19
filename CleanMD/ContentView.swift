@@ -8,6 +8,7 @@ struct ContentView: View {
     @StateObject private var scrollSync: ScrollSyncController
     @StateObject private var fileExplorerStore: FileExplorerStore
     @AppStorage("isDarkMode") private var isDarkMode: Bool = false
+    @AppStorage("isSidebarCollapsed") private var isSidebarCollapsed: Bool = false
     @State private var isColorPanelVisible: Bool = false
     @State private var isDragTargeted = false
     // Observing colorSettings causes ContentView to re-render when palette changes,
@@ -25,8 +26,10 @@ struct ContentView: View {
 
     var body: some View {
         NoDividerHSplitView(
-            left: FileExplorerView(store: fileExplorerStore)
-                .frame(minWidth: 200, idealWidth: 220, maxWidth: 280),
+            left: FileExplorerView(
+                store: fileExplorerStore,
+                isCollapsed: $isSidebarCollapsed
+            ),
             right: NoDividerHSplitView(
                 left: EditorView(
                     text: $document.text,
@@ -44,6 +47,15 @@ struct ContentView: View {
                     fileURL: fileURL
                 )
             ),
+            layout: .init(
+                autosaveKey: "CleanMDSidebarExpandedWidthV2",
+                defaultLeftWidth: 220,
+                minLeftWidth: 170,
+                minRightWidth: 420,
+                collapsedLeftWidth: 36,
+                isCollapsed: $isSidebarCollapsed,
+                preserveLeftWidthOnResize: true
+            )
         )
         .preferredColorScheme(isDarkMode ? .dark : .light)
         .background(WindowConfigurator(
@@ -112,43 +124,196 @@ struct ContentView: View {
 
 /// NSSplitView subclass whose divider is invisible but still 1 pt wide for dragging.
 private final class NoDividerSplitView: NSSplitView {
-    // Keep the delegate separate from the split view itself to avoid AppKit
-    // sidebar responder recursion during menu validation on newer macOS builds.
-    private let splitDelegate = LayoutDelegate()
-
-    override init(frame frameRect: NSRect) {
-        super.init(frame: frameRect)
-        delegate = splitDelegate
-    }
-
-    required init?(coder: NSCoder) {
-        super.init(coder: coder)
-        delegate = splitDelegate
-    }
-
     override func drawDivider(in rect: NSRect) { /* invisible */ }
     override var dividerThickness: CGFloat { 1 }
+}
 
-    private final class LayoutDelegate: NSObject, NSSplitViewDelegate {
-        private let minPaneWidth: CGFloat = 200
+private struct SplitViewLayout {
+    var autosaveKey: String? = nil
+    var defaultLeftWidth: CGFloat = 0
+    var minLeftWidth: CGFloat = 200
+    var minRightWidth: CGFloat = 200
+    var collapsedLeftWidth: CGFloat? = nil
+    var isCollapsed: Binding<Bool>? = nil
+    var preserveLeftWidthOnResize: Bool = false
 
-        func splitView(_ splitView: NSSplitView,
-                       constrainMinCoordinate proposed: CGFloat,
-                       ofSubviewAt index: Int) -> CGFloat {
-            max(proposed, minPaneWidth)
+    static let balanced = SplitViewLayout(
+        autosaveKey: nil,
+        defaultLeftWidth: 0,
+        minLeftWidth: 200,
+        minRightWidth: 200,
+        collapsedLeftWidth: nil,
+        isCollapsed: nil,
+        preserveLeftWidthOnResize: false
+    )
+}
+
+private final class SplitViewCoordinator: NSObject, NSSplitViewDelegate {
+    var layout: SplitViewLayout
+    private weak var splitView: NoDividerSplitView?
+    private weak var leftSubview: NSView?
+    private weak var rightSubview: NSView?
+    private var hasAppliedInitialLayout = false
+    private var lastCollapsedState: Bool?
+    private var isApplyingProgrammaticLayout = false
+
+    init(layout: SplitViewLayout) {
+        self.layout = layout
+    }
+
+    func install(splitView: NoDividerSplitView, leftSubview: NSView, rightSubview: NSView) {
+        self.splitView = splitView
+        self.leftSubview = leftSubview
+        self.rightSubview = rightSubview
+        splitView.delegate = self
+        DispatchQueue.main.async { [weak self, weak splitView] in
+            guard let self, let splitView else { return }
+            self.applyLayout(to: splitView, force: true)
+        }
+    }
+
+    func applyLayout(to splitView: NoDividerSplitView, force: Bool) {
+        guard splitView.subviews.count == 2 else { return }
+
+        let isCollapsed = layout.isCollapsed?.wrappedValue ?? false
+        let totalWidth = availableWidth(in: splitView)
+        if !isCollapsed && totalWidth <= 0 {
+            DispatchQueue.main.async { [weak self, weak splitView] in
+                guard let self, let splitView else { return }
+                self.applyLayout(to: splitView, force: true)
+            }
+            return
+        }
+        let collapsedChanged = lastCollapsedState != isCollapsed
+        guard force || !hasAppliedInitialLayout || collapsedChanged else { return }
+
+        hasAppliedInitialLayout = true
+        lastCollapsedState = isCollapsed
+        leftSubview?.isHidden = false
+
+        let targetWidth: CGFloat
+        if isCollapsed {
+            targetWidth = layout.collapsedLeftWidth ?? 36
+        } else {
+            targetWidth = clampedExpandedLeftWidth(storedOrDefaultLeftWidth(), totalWidth: totalWidth)
         }
 
-        func splitView(_ splitView: NSSplitView,
-                       constrainMaxCoordinate proposed: CGFloat,
-                       ofSubviewAt index: Int) -> CGFloat {
-            min(proposed, splitView.bounds.width - minPaneWidth)
+        isApplyingProgrammaticLayout = true
+        splitView.setPosition(targetWidth, ofDividerAt: 0)
+        splitView.adjustSubviews()
+        DispatchQueue.main.async { [weak self] in
+            self?.isApplyingProgrammaticLayout = false
         }
+
+        if !isCollapsed {
+            persistLeftWidth(targetWidth)
+        }
+    }
+
+    func splitViewDidResizeSubviews(_ notification: Notification) {
+        guard let splitView else { return }
+        guard !isApplyingProgrammaticLayout else { return }
+        guard !(layout.isCollapsed?.wrappedValue ?? false) else { return }
+
+        let width = clampedExpandedLeftWidth(currentLeftWidth(in: splitView), totalWidth: availableWidth(in: splitView))
+        guard width > 1 else { return }
+        persistLeftWidth(width)
+    }
+
+    func splitView(_ splitView: NSSplitView, resizeSubviewsWithOldSize oldSize: NSSize) {
+        guard splitView.subviews.count == 2 else { return }
+
+        let dividerThickness = splitView.dividerThickness
+        let bounds = splitView.bounds
+        let totalWidth = max(0, bounds.width - dividerThickness)
+        let leftWidth: CGFloat
+
+        if layout.isCollapsed?.wrappedValue ?? false {
+            leftWidth = layout.collapsedLeftWidth ?? 36
+        } else if layout.preserveLeftWidthOnResize {
+            leftWidth = clampedExpandedLeftWidth(storedOrDefaultLeftWidth(), totalWidth: totalWidth)
+        } else {
+            let oldTotalWidth = max(1, oldSize.width - dividerThickness)
+            let ratio = currentLeftWidth(in: splitView) / oldTotalWidth
+            leftWidth = clampedExpandedLeftWidth(totalWidth * ratio, totalWidth: totalWidth)
+        }
+
+        let rightWidth = max(layout.minRightWidth, bounds.width - dividerThickness - leftWidth)
+        splitView.subviews[0].frame = NSRect(x: 0, y: 0, width: leftWidth, height: bounds.height)
+        splitView.subviews[1].frame = NSRect(x: leftWidth + dividerThickness, y: 0, width: rightWidth, height: bounds.height)
+    }
+
+    func splitView(
+        _ splitView: NSSplitView,
+        constrainMinCoordinate proposed: CGFloat,
+        ofSubviewAt index: Int
+    ) -> CGFloat {
+        if layout.isCollapsed?.wrappedValue ?? false {
+            return layout.collapsedLeftWidth ?? 36
+        }
+        return max(proposed, layout.minLeftWidth)
+    }
+
+    func splitView(
+        _ splitView: NSSplitView,
+        constrainMaxCoordinate proposed: CGFloat,
+        ofSubviewAt index: Int
+    ) -> CGFloat {
+        if layout.isCollapsed?.wrappedValue ?? false {
+            return layout.collapsedLeftWidth ?? 36
+        }
+        let maxLeftWidth = max(0, availableWidth(in: splitView) - layout.minRightWidth)
+        return min(proposed, maxLeftWidth)
+    }
+
+    private func storedOrDefaultLeftWidth() -> CGFloat {
+        guard let autosaveKey = layout.autosaveKey else {
+            return layout.defaultLeftWidth
+        }
+
+        let storedWidth = UserDefaults.standard.double(forKey: autosaveKey)
+        if storedWidth > 0 {
+            return storedWidth
+        }
+
+        return layout.defaultLeftWidth
+    }
+
+    private func persistLeftWidth(_ width: CGFloat) {
+        guard let autosaveKey = layout.autosaveKey, width > 0 else { return }
+        UserDefaults.standard.set(width, forKey: autosaveKey)
+    }
+
+    private func availableWidth(in splitView: NSSplitView) -> CGFloat {
+        max(0, splitView.bounds.width - splitView.dividerThickness)
+    }
+
+    private func currentLeftWidth(in splitView: NSSplitView) -> CGFloat {
+        guard splitView.subviews.count >= 1 else { return 0 }
+        return splitView.subviews[0].frame.width
+    }
+
+    private func clampedLeftWidth(_ proposed: CGFloat, totalWidth: CGFloat) -> CGFloat {
+        clampedExpandedLeftWidth(proposed, totalWidth: totalWidth)
+    }
+
+    private func clampedExpandedLeftWidth(_ proposed: CGFloat, totalWidth: CGFloat) -> CGFloat {
+        let minimum = min(layout.minLeftWidth, max(0, totalWidth - layout.minRightWidth))
+        let maximum = max(minimum, totalWidth - layout.minRightWidth)
+        let fallback = layout.defaultLeftWidth > 0 ? layout.defaultLeftWidth : max(minimum, totalWidth * 0.5)
+        let candidate = proposed > 0 ? proposed : fallback
+        return min(max(candidate, minimum), maximum)
     }
 }
 
 private struct NoDividerHSplitView<L: View, R: View>: NSViewRepresentable {
     let left:  L
     let right: R
+    var layout: SplitViewLayout = .balanced
+
+    func makeCoordinator() -> SplitViewCoordinator {
+        SplitViewCoordinator(layout: layout)
+    }
 
     func makeNSView(context: Context) -> NoDividerSplitView {
         let sv = NoDividerSplitView()
@@ -161,13 +326,16 @@ private struct NoDividerHSplitView<L: View, R: View>: NSViewRepresentable {
         rh.autoresizingMask = [.width, .height]
         sv.addSubview(lh)
         sv.addSubview(rh)
+        context.coordinator.install(splitView: sv, leftSubview: lh, rightSubview: rh)
         return sv
     }
 
     func updateNSView(_ sv: NoDividerSplitView, context: Context) {
         guard sv.subviews.count == 2 else { return }
+        context.coordinator.layout = layout
         (sv.subviews[0] as? NSHostingView<L>)?.rootView = left
         (sv.subviews[1] as? NSHostingView<R>)?.rootView = right
+        context.coordinator.applyLayout(to: sv, force: false)
     }
 }
 

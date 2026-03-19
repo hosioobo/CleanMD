@@ -58,6 +58,22 @@ func testMarkdownTableNormalizer() throws {
     try expect(lines[2].contains("lanes/raw/notes/ screenshots/curriculum-3-guest-post-sell.png"), "continued table cell content should stay in the same row")
 }
 
+func testRecentDocumentHistoryMerge() throws {
+    let first = URL(fileURLWithPath: "/tmp/alpha.md")
+    let second = URL(fileURLWithPath: "/tmp/beta.yaml")
+    let third = URL(fileURLWithPath: "/tmp/gamma.md")
+
+    let merged = RecentDocumentHistory.merge(
+        primary: [first, second],
+        secondary: [first, third, second]
+    )
+
+    try expect(
+        merged == [first.standardizedFileURL, second.standardizedFileURL, third.standardizedFileURL],
+        "recent history merge should preserve primary order and deduplicate"
+    )
+}
+
 func testFileExplorerStore() throws {
     let folder = try makeTempDirectory()
     defer { try? FileManager.default.removeItem(at: folder) }
@@ -118,6 +134,23 @@ func testFileExplorerStore() throws {
         )
     )
     try expect(openedURL == alpha.standardizedFileURL, "activating a non-current file should open it")
+
+    var recordedURL: URL?
+    let recordingStore = FileExplorerStore(
+        currentFileURL: nil,
+        dependencies: .init(
+            contentsOfDirectory: { _ in [] },
+            recentDocumentURLs: { [] },
+            openURL: { _ in },
+            recordRecentDocumentURL: { recordedURL = $0 },
+            pathSubtitle: { formatter.parentPath(for: $0) },
+            isReadableSupportedFile: { SupportedDocumentKind.isSupportedReadableFile(url: $0) },
+            isDirectory: { isDirectory($0) }
+        )
+    )
+
+    recordingStore.updateCurrentFileURL(alpha)
+    try expect(recordedURL == alpha.standardizedFileURL, "updating current file should record a recent document")
 }
 
 @main
@@ -127,6 +160,7 @@ enum SmokeTestsMain {
             ("SupportedDocumentKind", testSupportedDocumentKind),
             ("PathDisplayFormatter", testPathDisplayFormatter),
             ("MarkdownTableNormalizer", testMarkdownTableNormalizer),
+            ("RecentDocumentHistory", testRecentDocumentHistoryMerge),
             ("FileExplorerStore", testFileExplorerStore)
         ]
 
