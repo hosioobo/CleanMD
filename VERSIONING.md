@@ -82,6 +82,7 @@ When preparing a release, move those notes into a versioned section such as `## 
 
 - `./scripts/prepare-release.sh 0.8.0 8`
   - updates `Info.plist`
+  - refuses to reuse a version that already has a Git tag or changelog section
   - creates a release notes template if missing
 - `./scripts/package-release.sh`
   - builds `CleanMD.app`

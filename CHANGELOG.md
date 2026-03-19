@@ -21,6 +21,8 @@ All notable project updates are tracked here.
 
 - Split view crash in the editor layout.
 - Scroll sync calibration between editor and preview.
+- Preview links now block local file navigation and unsupported URL schemes.
+- Release preparation now refuses duplicate versions and avoids no-op `Info.plist` rewrites.
 
 ## v0.7.0 — 2026-03-05
 
