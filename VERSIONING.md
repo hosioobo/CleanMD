@@ -76,7 +76,11 @@ When preparing a release, move those notes into a versioned section such as `## 
    - `git commit -m "Release v<version>"`
 8. Tag the release:
    - `git tag v<version>`
-9. Push commit and tag, then create a GitHub Release with the zip and release notes.
+9. Push commit and tag:
+   - `git push origin main`
+   - `git push origin v<version>`
+10. Create the GitHub Release:
+   - `./scripts/create-github-release.sh <version>`
 
 ## Helper Scripts
 
@@ -87,6 +91,8 @@ When preparing a release, move those notes into a versioned section such as `## 
 - `./scripts/package-release.sh`
   - builds `CleanMD.app`
   - creates `CleanMD-v<current-version>-macOS.zip`
+- `./scripts/create-github-release.sh 0.8.0`
+  - creates the GitHub Release from the local tag, release notes, and packaged zip
 
 ## Where To Put These Rules
 
