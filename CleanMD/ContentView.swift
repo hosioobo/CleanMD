@@ -8,7 +8,7 @@ struct ContentView: View {
     @StateObject private var scrollSync: ScrollSyncController
     @StateObject private var fileExplorerStore: FileExplorerStore
     @AppStorage("isDarkMode") private var isDarkMode: Bool = false
-    @AppStorage("isSidebarCollapsed") private var isSidebarCollapsed: Bool = false
+    @SceneStorage("isSidebarCollapsed") private var isSidebarCollapsed: Bool = false
     @State private var isColorPanelVisible: Bool = false
     @State private var isDragTargeted = false
     // Observing colorSettings causes ContentView to re-render when palette changes,
