@@ -9,6 +9,12 @@ struct PreviewView: NSViewRepresentable {
     var palette: ColorPalette
     var showH1Divider: Bool
     var showH2Divider: Bool
+    var fileURL: URL? = nil
+    var previewMode: PreviewMode? = nil
+
+    private var resolvedPreviewMode: PreviewMode {
+        previewMode ?? fileURL.flatMap { SupportedDocumentKind(url: $0).previewMode } ?? .markdown
+    }
 
     func makeCoordinator() -> Coordinator {
         Coordinator(self)
@@ -41,7 +47,7 @@ struct PreviewView: NSViewRepresentable {
     }
 
     func updateNSView(_ webView: WKWebView, context: Context) {
-        context.coordinator.scheduleRender(text: text)
+        context.coordinator.scheduleRender(text: text, previewMode: resolvedPreviewMode)
         context.coordinator.applyColorScheme(isDarkMode, to: webView)
         context.coordinator.applyUnderPageBackground(palette.previewBg, to: webView)
         // Apply palette whenever it changes — covers dark/light switch AND user edits
@@ -121,6 +127,9 @@ struct PreviewView: NSViewRepresentable {
             margin: 0 auto;
             -webkit-font-smoothing: antialiased;
             text-rendering: optimizeLegibility;
+        }
+        body.code-preview {
+            max-width: none;
         }
         h1, h2, h3, h4, h5, h6 {
             margin-top: 1.35em;
@@ -271,6 +280,30 @@ struct PreviewView: NSViewRepresentable {
             };
         }
 
+        function renderCodePreviewHtml(language, text, cache, maxEntries) {
+            var code = String(text || '');
+            var lang = normalizeLanguage(language);
+            var highlighted = highlightCodeCached(code, lang, cache, maxEntries);
+            var className = 'hljs' + (lang ? (' language-' + lang) : '');
+            document.body.classList.add('code-preview');
+            return '<pre><code class="' + className + '">' + highlighted + '</code></pre>\\n';
+        }
+
+        function renderMarkdownPreviewHtml(text) {
+            document.body.classList.remove('code-preview');
+            var html = marked.parse(text);
+            return html;
+        }
+
+        function renderPreviewHtml(mode, text, cache, maxEntries) {
+            var normalizedMode = String(mode || 'markdown');
+            if (normalizedMode.indexOf('code:') === 0) {
+                var language = normalizedMode.slice(5);
+                return renderCodePreviewHtml(language, text, cache, maxEntries);
+            }
+            return renderMarkdownPreviewHtml(text);
+        }
+
         function hasSupportedMathDelimiters(text) {
             return text.indexOf('$$') !== -1 ||
                    text.indexOf('\\\\(') !== -1 ||
@@ -298,6 +331,7 @@ struct PreviewView: NSViewRepresentable {
         var workerUnavailable = false;
         var latestRequestId = 0;
         var latestRequestedText = '';
+        var latestRequestedMode = 'markdown';
         var hasRenderedFirstDocument = false;
 
         function ensureRenderWorker() {
@@ -395,6 +429,27 @@ struct PreviewView: NSViewRepresentable {
                         }
                     };
                 }
+
+                function renderCodePreviewHtml(language, text, cache, maxEntries) {
+                    var code = String(text || '');
+                    var lang = normalizeLanguage(language);
+                    var highlighted = highlightCodeCached(code, lang, cache, maxEntries);
+                    var className = 'hljs' + (lang ? (' language-' + lang) : '');
+                    return '<pre><code class="' + className + '">' + highlighted + '</code></pre>\\n';
+                }
+
+                function renderMarkdownPreviewHtml(text) {
+                    return marked.parse(text);
+                }
+
+                function renderPreviewHtml(mode, text, cache, maxEntries) {
+                    var normalizedMode = String(mode || 'markdown');
+                    if (normalizedMode.indexOf('code:') === 0) {
+                        var language = normalizedMode.slice(5);
+                        return renderCodePreviewHtml(language, text, cache, maxEntries);
+                    }
+                    return renderMarkdownPreviewHtml(text);
+                }
                 
                 var highlightCache = new Map();
                 marked.use(buildMarkedOptions(highlightCache, 400));
@@ -403,13 +458,19 @@ struct PreviewView: NSViewRepresentable {
                     var data = event.data || {};
                     if (data.type !== 'render') return;
                     var text = String(data.text || '');
+                    var mode = String(data.mode || 'markdown');
                     var html = '';
                     try {
-                        html = marked.parse(text);
+                        html = renderPreviewHtml(mode, text, highlightCache, 400);
                     } catch (err) {
                         html = '<pre>' + escapeHtml(String(err && err.message ? err.message : err)) + '</pre>';
                     }
-                    self.postMessage({ type: 'rendered', requestId: data.requestId, html: html });
+                    self.postMessage({
+                        type: 'rendered',
+                        requestId: data.requestId,
+                        mode: mode,
+                        html: html
+                    });
                 };
                 `;
 
@@ -425,8 +486,12 @@ struct PreviewView: NSViewRepresentable {
 
                     var content = document.getElementById('content');
                     if (!content) return;
+                    var mode = String(data.mode || latestRequestedMode || 'markdown');
+                    document.body.classList.toggle('code-preview', mode.indexOf('code:') === 0);
                     content.innerHTML = String(data.html || '');
-                    maybeRenderMath(content, latestRequestedText);
+                    if (mode === 'markdown') {
+                        maybeRenderMath(content, latestRequestedText);
+                    }
                 };
 
                 renderWorker.onerror = function() {
@@ -435,7 +500,7 @@ struct PreviewView: NSViewRepresentable {
                         renderWorker.terminate();
                         renderWorker = null;
                     }
-                    renderWithMainThreadParser(latestRequestedText);
+                    renderWithMainThreadPreview(latestRequestedMode, latestRequestedText);
                 };
             } catch (e) {
                 workerUnavailable = true;
@@ -443,20 +508,24 @@ struct PreviewView: NSViewRepresentable {
             }
         }
 
-        function renderWithMainThreadParser(text) {
+        function renderWithMainThreadPreview(mode, text) {
             var content = document.getElementById('content');
             if (!content) return;
-            content.innerHTML = marked.parse(text);
-            maybeRenderMath(content, text);
+            var html = renderPreviewHtml(mode, text, mainThreadHighlightCache, maxHighlightedCodeCacheEntries);
+            content.innerHTML = html;
+            if (String(mode || 'markdown') === 'markdown') {
+                maybeRenderMath(content, text);
+            }
         }
 
-        function renderMarkdown(text) {
+        function renderPreview(mode, text) {
+            latestRequestedMode = String(mode || 'markdown');
             latestRequestedText = text;
 
             // Render the initial document synchronously to remove startup lag.
             if (!hasRenderedFirstDocument) {
                 hasRenderedFirstDocument = true;
-                renderWithMainThreadParser(text);
+                renderWithMainThreadPreview(mode, text);
                 ensureRenderWorker(); // warm worker for subsequent updates
                 return;
             }
@@ -465,7 +534,7 @@ struct PreviewView: NSViewRepresentable {
 
             // Fallback path when Web Worker is unavailable.
             if (!renderWorker) {
-                renderWithMainThreadParser(text);
+                renderWithMainThreadPreview(mode, text);
                 return;
             }
 
@@ -473,8 +542,13 @@ struct PreviewView: NSViewRepresentable {
             renderWorker.postMessage({
                 type: 'render',
                 requestId: latestRequestId,
+                mode: latestRequestedMode,
                 text: text
             });
+        }
+
+        function renderMarkdown(text) {
+            renderPreview('markdown', text);
         }
 
         function updateColors(c) {
@@ -538,8 +612,9 @@ struct PreviewView: NSViewRepresentable {
         private var debounceTimer: Timer?
         private var isLoaded = false
         private var pendingText: String?
-        private var queuedText: String?
-        private var lastRenderedText: String?
+        private var pendingPreviewMode: PreviewMode = .markdown
+        private var queuedRenderKey: String?
+        private var lastRenderedRenderKey: String?
         private var pendingPalette: ColorPalette?
         private var pendingHeadingDividers: (Bool, Bool)?
         private var lastAppliedDarkMode: Bool? = nil
@@ -551,10 +626,12 @@ struct PreviewView: NSViewRepresentable {
             self.parent = parent
         }
 
-        func scheduleRender(text: String) {
-            guard text != queuedText, text != lastRenderedText else { return }
-            queuedText = text
+        func scheduleRender(text: String, previewMode: PreviewMode) {
+            let renderKey = Self.renderKey(text: text, previewMode: previewMode)
+            guard renderKey != queuedRenderKey, renderKey != lastRenderedRenderKey else { return }
+            queuedRenderKey = renderKey
             pendingText = text
+            pendingPreviewMode = previewMode
             debounceTimer?.invalidate()
             guard isLoaded, let webView else { return }
             debounceTimer = Timer.scheduledTimer(
@@ -562,8 +639,12 @@ struct PreviewView: NSViewRepresentable {
                 repeats: false
             ) { [weak self, weak webView] _ in
                 guard let self, let webView else { return }
-                self.render(text: text, in: webView)
+                self.render(text: text, previewMode: previewMode, in: webView)
             }
+        }
+
+        private static func renderKey(text: String, previewMode: PreviewMode) -> String {
+            "\(previewMode.renderKey)|\(text)"
         }
 
         private func debounceInterval(for text: String) -> TimeInterval {
@@ -607,17 +688,22 @@ struct PreviewView: NSViewRepresentable {
             webView.evaluateJavaScript("updateHeadingDividers(\(json));", completionHandler: nil)
         }
 
-        private func render(text: String, in webView: WKWebView) {
+        private func render(text: String, previewMode: PreviewMode, in webView: WKWebView) {
             guard let data = try? JSONEncoder().encode(text),
                   let json = String(data: data, encoding: .utf8) else { return }
-            lastRenderedText = text
-            queuedText = nil
-            webView.evaluateJavaScript("renderMarkdown(\(json));", completionHandler: nil)
+            let renderKey = Self.renderKey(text: text, previewMode: previewMode)
+            lastRenderedRenderKey = renderKey
+            queuedRenderKey = nil
+            let modeJSON = (try? JSONEncoder().encode(previewMode.renderKey))
+                .flatMap { String(data: $0, encoding: .utf8) } ?? "\"markdown\""
+            webView.evaluateJavaScript("renderPreview(\(modeJSON), \(json));", completionHandler: nil)
         }
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             isLoaded = true
-            if let text = pendingText { render(text: text, in: webView) }
+            if let text = pendingText {
+                render(text: text, previewMode: pendingPreviewMode, in: webView)
+            }
             applyColorScheme(parent.isDarkMode, to: webView)
             applyPalette(pendingPalette ?? parent.palette, to: webView)
             let pending = pendingHeadingDividers ?? (parent.showH1Divider, parent.showH2Divider)
@@ -651,6 +737,17 @@ struct PreviewView: NSViewRepresentable {
         ) {
             guard message.name == "scrollChanged", let fraction = message.body as? Double else { return }
             DispatchQueue.main.async { self.parent.scrollSync.previewScrolled(to: fraction) }
+        }
+    }
+}
+
+private extension PreviewMode {
+    var renderKey: String {
+        switch self {
+        case .markdown:
+            return "markdown"
+        case .code(let language):
+            return "code:\(language.lowercased())"
         }
     }
 }

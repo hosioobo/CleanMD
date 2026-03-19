@@ -43,6 +43,21 @@
                 <string>net.daringfireball.markdown</string>
             </array>
         </dict>
+        <dict>
+            <key>CFBundleTypeName</key>
+            <string>YAML Document</string>
+            <key>CFBundleTypeRole</key>
+            <string>Editor</string>
+            <key>CFBundleTypeExtensions</key>
+            <array>
+                <string>yml</string>
+                <string>yaml</string>
+            </array>
+            <key>LSItemContentTypes</key>
+            <array>
+                <string>com.cleanmd.yaml</string>
+            </array>
+        </dict>
     </array>
     <key>UTImportedTypeDeclarations</key>
     <array>
@@ -61,6 +76,24 @@
                 <array>
                     <string>md</string>
                     <string>markdown</string>
+                </array>
+            </dict>
+        </dict>
+        <dict>
+            <key>UTTypeIdentifier</key>
+            <string>com.cleanmd.yaml</string>
+            <key>UTTypeDescription</key>
+            <string>YAML Document</string>
+            <key>UTTypeConformsTo</key>
+            <array>
+                <string>public.plain-text</string>
+            </array>
+            <key>UTTypeTagSpecification</key>
+            <dict>
+                <key>public.filename-extension</key>
+                <array>
+                    <string>yml</string>
+                    <string>yaml</string>
                 </array>
             </dict>
         </dict>

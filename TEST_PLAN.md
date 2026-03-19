@@ -12,6 +12,11 @@
 - Color panel visibility is window-local while palette edits are app-global.
 - Clicking preview links opens external browser/mail client and does not navigate in-place.
 - Markdown open/save round-trip preserves UTF-8 content exactly.
+- Supported document kind detection covers `.md`, `.markdown`, `.yml`, `.yaml`.
+- History path subtitle formatter shows parent path and abbreviates the home directory as `~`.
+- File explorer store filters unsupported files, preserves recent-file order, and highlights the current file.
+- YAML documents open and render in code-preview mode with preserved indentation.
+- `scripts/run-smoke-tests.sh` passes in CLT-only environments where `swift test` is unavailable.
 
 ## P2 (performance confidence)
 

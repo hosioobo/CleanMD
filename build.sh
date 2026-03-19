@@ -5,6 +5,10 @@ PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
 APP_NAME="CleanMD"
 APP_PATH="$PROJECT_DIR/$APP_NAME.app"
 BUILD_DIR="$PROJECT_DIR/.build/release"
+SWIFTPM_CACHE_ROOT="${TMPDIR%/}/cleanmd-swiftpm"
+SWIFTPM_HOME="$SWIFTPM_CACHE_ROOT/home"
+CLANG_CACHE="$SWIFTPM_CACHE_ROOT/clang-module-cache"
+SWIFTPM_CACHE="$SWIFTPM_CACHE_ROOT/cache"
 
 cd "$PROJECT_DIR"
 
@@ -17,7 +21,13 @@ if [ ! -f "$PROJECT_DIR/AppIcon.icns" ] || \
 fi
 
 echo "▶ Building $APP_NAME..."
-swift build -c release 2>&1
+mkdir -p "$SWIFTPM_HOME" "$CLANG_CACHE" "$SWIFTPM_CACHE"
+HOME="$SWIFTPM_HOME" \
+CFFIXED_USER_HOME="$SWIFTPM_HOME" \
+XDG_CACHE_HOME="$SWIFTPM_HOME/.cache" \
+CLANG_MODULE_CACHE_PATH="$CLANG_CACHE" \
+SWIFTPM_CUSTOM_CACHE_PATH="$SWIFTPM_CACHE" \
+swift build --disable-sandbox -c release 2>&1
 
 echo ""
 echo "▶ Packaging $APP_NAME.app..."
@@ -46,5 +56,10 @@ echo "▶ Registering with Launch Services..."
 
 echo ""
 echo "✓ Built: $APP_PATH"
-echo "▶ Launching..."
-open "$APP_PATH"
+
+if [ "${NO_OPEN:-0}" = "1" ]; then
+    echo "▶ Skipping launch (NO_OPEN=1)"
+else
+    echo "▶ Launching..."
+    open "$APP_PATH"
+fi
