@@ -53,7 +53,7 @@ Regular users can download packaged builds from the GitHub Releases page:
 ### Run the App
 
 1. Download the latest release from GitHub Releases.
-2. Unzip `CleanMD-v0.7.0-macOS.zip`.
+2. Unzip the downloaded `CleanMD-v*.zip` file.
 3. Move `CleanMD.app` to your Applications folder if desired.
 4. Open `CleanMD.app`.
 
@@ -89,11 +89,8 @@ Please keep the app lightweight and offline-friendly. If you change bundled thir
 
 ## Release Notes
 
-The first public release is planned as `v0.7.0` and will include:
-
-- source code for contributors
-- a zipped macOS app for download
-- release notes describing macOS support and Gatekeeper behavior
+- See [`CHANGELOG.md`](CHANGELOG.md) for recent updates after the first release.
+- See [`RELEASE_NOTES_v0.7.0.md`](RELEASE_NOTES_v0.7.0.md) for the first public release notes.
 
 ## License
 
