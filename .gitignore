@@ -1,6 +1,7 @@
 .DS_Store
 .build/
 .claude/
+.codex/
 CleanMD.app/
 
 # Internal agent guidance
@@ -12,3 +13,6 @@ CLAUDE.md
 # Editor and OS noise
 *.swp
 *.tmp
+
+# Local runtime artifacts
+.omx/

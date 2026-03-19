@@ -92,6 +92,12 @@ Please keep the app lightweight and offline-friendly. If you change bundled thir
 - See [`CHANGELOG.md`](CHANGELOG.md) for recent updates after the first release.
 - See [`RELEASE_NOTES_v0.7.0.md`](RELEASE_NOTES_v0.7.0.md) for the first public release notes.
 
+## Versioning and Releases
+
+- Versioning policy and release checklist: [`VERSIONING.md`](VERSIONING.md)
+- Prepare release metadata: `./scripts/prepare-release.sh <version> <build>`
+- Build a versioned release zip: `./scripts/package-release.sh`
+
 ## License
 
 CleanMD is available under the MIT license. See `LICENSE`.
