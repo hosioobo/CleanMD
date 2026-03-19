@@ -219,14 +219,25 @@ struct PreviewView: NSViewRepresentable {
             });
         }
 
-        function sanitizeHref(rawHref) {
+        function escapeAttribute(raw) {
+            return escapeHtml(raw);
+        }
+
+        function sanitizeLinkHref(rawHref) {
             var href = String(rawHref || '').trim();
             if (!href) return '';
-            if (href[0] === '#' || href[0] === '/' || !/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(href)) {
-                return href;
-            }
+            if (href[0] === '#') return href;
+            if (!/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(href)) return '';
             var scheme = href.slice(0, href.indexOf(':')).toLowerCase();
             return (scheme === 'http' || scheme === 'https' || scheme === 'mailto') ? href : '';
+        }
+
+        function sanitizeImageSrc(rawSrc) {
+            var src = String(rawSrc || '').trim();
+            if (!src) return '';
+            if (!/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(src)) return '';
+            var scheme = src.slice(0, src.indexOf(':')).toLowerCase();
+            return (scheme === 'http' || scheme === 'https') ? src : '';
         }
 
         function normalizeLanguage(rawLang) {
@@ -282,17 +293,31 @@ struct PreviewView: NSViewRepresentable {
                         // Do not execute raw HTML embedded in markdown.
                         return escapeHtml(raw);
                     },
+                    link: function(token) {
+                        var href = sanitizeLinkHref(token && token.href);
+                        var text = '';
+                        if (this.parser && token && Array.isArray(token.tokens)) {
+                            text = this.parser.parseInline(token.tokens);
+                        } else {
+                            text = escapeHtml(token && token.text ? token.text : '');
+                        }
+                        if (!href) return text;
+                        var title = token && token.title ? ' title="' + escapeAttribute(token.title) + '"' : '';
+                        return '<a href="' + escapeAttribute(href) + '"' + title + '>' + text + '</a>';
+                    },
+                    image: function(token) {
+                        var src = sanitizeImageSrc(token && token.href);
+                        var alt = escapeAttribute(token && token.text ? token.text : '');
+                        if (!src) return alt;
+                        var title = token && token.title ? ' title="' + escapeAttribute(token.title) + '"' : '';
+                        return '<img src="' + escapeAttribute(src) + '" alt="' + alt + '"' + title + '>';
+                    },
                     code: function(token) {
                         var code = String(token && token.text ? token.text : '');
                         var lang = normalizeLanguage(token && token.lang);
                         var highlighted = highlightCodeCached(code, lang, cache, maxEntries);
                         var className = 'hljs' + (lang ? (' language-' + lang) : '');
                         return '<pre><code class="' + className + '">' + highlighted + '</code></pre>\\n';
-                    }
-                },
-                walkTokens: function(token) {
-                    if ((token.type === 'link' || token.type === 'image') && token.href) {
-                        token.href = sanitizeHref(token.href);
                     }
                 }
             };
@@ -372,13 +397,26 @@ struct PreviewView: NSViewRepresentable {
                         }
                     });
                 }
+
+                function escapeAttribute(raw) {
+                    return escapeHtml(raw);
+                }
                 
-                function sanitizeHref(rawHref) {
+                function sanitizeLinkHref(rawHref) {
                     var href = String(rawHref || '').trim();
                     if (!href) return '';
-                    if (href[0] === '#' || href[0] === '/' || !/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(href)) return href;
+                    if (href[0] === '#') return href;
+                    if (!/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(href)) return '';
                     var scheme = href.slice(0, href.indexOf(':')).toLowerCase();
                     return (scheme === 'http' || scheme === 'https' || scheme === 'mailto') ? href : '';
+                }
+
+                function sanitizeImageSrc(rawSrc) {
+                    var src = String(rawSrc || '').trim();
+                    if (!src) return '';
+                    if (!/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(src)) return '';
+                    var scheme = src.slice(0, src.indexOf(':')).toLowerCase();
+                    return (scheme === 'http' || scheme === 'https') ? src : '';
                 }
                 
                 function normalizeLanguage(rawLang) {
@@ -432,17 +470,31 @@ struct PreviewView: NSViewRepresentable {
                                 }
                                 return escapeHtml(raw);
                             },
+                            link: function(token) {
+                                var href = sanitizeLinkHref(token && token.href);
+                                var text = '';
+                                if (this.parser && token && Array.isArray(token.tokens)) {
+                                    text = this.parser.parseInline(token.tokens);
+                                } else {
+                                    text = escapeHtml(token && token.text ? token.text : '');
+                                }
+                                if (!href) return text;
+                                var title = token && token.title ? ' title="' + escapeAttribute(token.title) + '"' : '';
+                                return '<a href="' + escapeAttribute(href) + '"' + title + '>' + text + '</a>';
+                            },
+                            image: function(token) {
+                                var src = sanitizeImageSrc(token && token.href);
+                                var alt = escapeAttribute(token && token.text ? token.text : '');
+                                if (!src) return alt;
+                                var title = token && token.title ? ' title="' + escapeAttribute(token.title) + '"' : '';
+                                return '<img src="' + escapeAttribute(src) + '" alt="' + alt + '"' + title + '>';
+                            },
                             code: function(token) {
                                 var code = String(token && token.text ? token.text : '');
                                 var lang = normalizeLanguage(token && token.lang);
                                 var highlighted = highlightCodeCached(code, lang, cache, maxEntries);
                                 var className = 'hljs' + (lang ? (' language-' + lang) : '');
                                 return '<pre><code class="' + className + '">' + highlighted + '</code></pre>\\n';
-                            }
-                        },
-                        walkTokens: function(token) {
-                            if ((token.type === 'link' || token.type === 'image') && token.href) {
-                                token.href = sanitizeHref(token.href);
                             }
                         }
                     };
@@ -743,16 +795,23 @@ struct PreviewView: NSViewRepresentable {
         func webView(_ webView: WKWebView,
                      decidePolicyFor navigationAction: WKNavigationAction,
                      decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
-            if navigationAction.navigationType == .linkActivated,
-               let url = navigationAction.request.url {
-                if let scheme = url.scheme?.lowercased(),
-                   scheme == "http" || scheme == "https" || scheme == "mailto" {
-                    NSWorkspace.shared.open(url)
-                }
-                decisionHandler(.cancel)
+            guard navigationAction.navigationType == .linkActivated,
+                  let url = navigationAction.request.url else {
+                decisionHandler(.allow)
                 return
             }
-            decisionHandler(.allow)
+
+            if Self.isSameDocumentFragmentNavigation(url, currentURL: webView.url) {
+                decisionHandler(.allow)
+                return
+            }
+
+            if let scheme = url.scheme?.lowercased(),
+               scheme == "http" || scheme == "https" || scheme == "mailto" {
+                NSWorkspace.shared.open(url)
+            }
+
+            decisionHandler(.cancel)
         }
 
         deinit {
@@ -765,6 +824,20 @@ struct PreviewView: NSViewRepresentable {
         ) {
             guard message.name == "scrollChanged", let fraction = message.body as? Double else { return }
             DispatchQueue.main.async { self.parent.scrollSync.previewScrolled(to: fraction) }
+        }
+
+        private static func isSameDocumentFragmentNavigation(_ url: URL, currentURL: URL?) -> Bool {
+            guard let currentURL,
+                  var targetComponents = URLComponents(url: url, resolvingAgainstBaseURL: false),
+                  var currentComponents = URLComponents(url: currentURL, resolvingAgainstBaseURL: false),
+                  let fragment = targetComponents.fragment,
+                  !fragment.isEmpty else {
+                return false
+            }
+
+            targetComponents.fragment = nil
+            currentComponents.fragment = nil
+            return targetComponents.url == currentComponents.url
         }
     }
 }

@@ -25,6 +25,7 @@ INFO_PLIST="$PROJECT_DIR/Info.plist"
 CHANGELOG="$PROJECT_DIR/CHANGELOG.md"
 RELEASE_NOTES="$PROJECT_DIR/RELEASE_NOTES_v$VERSION.md"
 TODAY="$(date +%F)"
+RELEASE_TAG="v$VERSION"
 
 CURRENT_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$INFO_PLIST")"
 CURRENT_BUILD="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$INFO_PLIST")"
@@ -32,8 +33,42 @@ CURRENT_BUILD="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$INFO_PLIS
 echo "▶ Preparing release metadata"
 echo "  Version: $CURRENT_VERSION ($CURRENT_BUILD) -> $VERSION ($BUILD)"
 
-/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" "$INFO_PLIST"
-/usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD" "$INFO_PLIST"
+has_existing_tag=false
+if git -C "$PROJECT_DIR" rev-parse --git-dir >/dev/null 2>&1 &&
+   git -C "$PROJECT_DIR" rev-parse -q --verify "refs/tags/$RELEASE_TAG" >/dev/null 2>&1; then
+  has_existing_tag=true
+fi
+
+has_existing_changelog_entry=false
+if [ -f "$CHANGELOG" ] && grep -Eq "^## v${VERSION//./\\.}([[:space:]]|$)" "$CHANGELOG"; then
+  has_existing_changelog_entry=true
+fi
+
+if [ "$has_existing_tag" = true ] || [ "$has_existing_changelog_entry" = true ]; then
+  echo "Error: release $RELEASE_TAG already appears to exist."
+  if [ "$has_existing_tag" = true ]; then
+    echo "  - Git tag already exists: $RELEASE_TAG"
+  fi
+  if [ "$has_existing_changelog_entry" = true ]; then
+    echo "  - CHANGELOG.md already contains a section for $RELEASE_TAG"
+  fi
+  echo "Choose a new version or remove the existing release metadata before retrying."
+  exit 1
+fi
+
+if [ "$CURRENT_VERSION" != "$VERSION" ]; then
+  /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" "$INFO_PLIST"
+  echo "  Updated CFBundleShortVersionString to $VERSION"
+else
+  echo "  CFBundleShortVersionString already set to $VERSION"
+fi
+
+if [ "$CURRENT_BUILD" != "$BUILD" ]; then
+  /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD" "$INFO_PLIST"
+  echo "  Updated CFBundleVersion to $BUILD"
+else
+  echo "  CFBundleVersion already set to $BUILD"
+fi
 
 if [ ! -f "$RELEASE_NOTES" ]; then
   cat > "$RELEASE_NOTES" <<EOF
@@ -69,7 +104,7 @@ echo "  4. Run ./scripts/package-release.sh"
 echo "  5. Commit and tag:"
 echo "     git add Info.plist CHANGELOG.md $(basename "$RELEASE_NOTES")"
 echo "     git commit -m \"Release v$VERSION\""
-echo "     git tag v$VERSION"
+echo "     git tag $RELEASE_TAG"
 
 if [ -f "$CHANGELOG" ]; then
   echo ""
