@@ -67,20 +67,9 @@ When preparing a release, move those notes into a versioned section such as `## 
 2. Run `./scripts/prepare-release.sh <version> <build>`.
 3. Move `CHANGELOG.md` entries from `Unreleased` into a dated release section.
 4. Review or complete `RELEASE_NOTES_v<version>.md`.
-5. Run smoke tests:
-   - `./scripts/run-smoke-tests.sh`
-6. Build and package the app:
-   - `./scripts/package-release.sh`
-7. Commit the release metadata:
-   - `git add Info.plist CHANGELOG.md RELEASE_NOTES_v<version>.md README.md VERSIONING.md scripts/prepare-release.sh scripts/package-release.sh`
-   - `git commit -m "Release v<version>"`
-8. Tag the release:
-   - `git tag v<version>`
-9. Push commit and tag:
-   - `git push origin main`
-   - `git push origin v<version>`
-10. Create the GitHub Release:
-   - `./scripts/create-github-release.sh <version>`
+5. Run the full release flow:
+   - `./scripts/release.sh <version> <build>`
+6. Verify the GitHub Release page and uploaded zip asset.
 
 ## Helper Scripts
 
@@ -91,8 +80,18 @@ When preparing a release, move those notes into a versioned section such as `## 
 - `./scripts/package-release.sh`
   - builds `CleanMD.app`
   - creates `CleanMD-v<current-version>-macOS.zip`
+- `./scripts/release.sh 0.8.0 8`
+  - validates release metadata
+  - runs smoke tests and packages the zip
+  - commits release metadata, tags the release, pushes Git refs, and creates the GitHub Release
+  - supports `--dry-run` for a local preflight without push/release creation
 - `./scripts/create-github-release.sh 0.8.0`
   - creates the GitHub Release from the local tag, release notes, and packaged zip
+
+## CI
+
+- GitHub Actions CI lives in `.github/workflows/ci.yml`
+- CI runs `swift test`, smoke tests, and `./build.sh` on macOS for pushes to `main` and pull requests
 
 ## Where To Put These Rules
 

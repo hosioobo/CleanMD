@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: macos-latest
+    env:
+      SWIFTPM_CACHE_ROOT: ${{ runner.temp }}/cleanmd-swiftpm
+      HOME: ${{ runner.temp }}/cleanmd-swiftpm/home
+      CFFIXED_USER_HOME: ${{ runner.temp }}/cleanmd-swiftpm/home
+      XDG_CACHE_HOME: ${{ runner.temp }}/cleanmd-swiftpm/home/.cache
+      CLANG_MODULE_CACHE_PATH: ${{ runner.temp }}/cleanmd-swiftpm/clang-module-cache
+      SWIFTPM_CUSTOM_CACHE_PATH: ${{ runner.temp }}/cleanmd-swiftpm/cache
+      NO_OPEN: 1
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Create cache directories
+        run: mkdir -p "$HOME" "$XDG_CACHE_HOME" "$CLANG_MODULE_CACHE_PATH" "$SWIFTPM_CUSTOM_CACHE_PATH"
+
+      - name: Show Swift version
+        run: swift --version
+
+      - name: Run Swift package tests
+        run: swift test --disable-sandbox
+
+      - name: Run smoke tests
+        run: ./scripts/run-smoke-tests.sh
+
+      - name: Build app bundle
+        run: ./build.sh
