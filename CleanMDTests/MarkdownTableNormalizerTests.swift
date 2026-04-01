@@ -29,4 +29,17 @@ final class MarkdownTableNormalizerTests: XCTestCase {
 
         XCTAssertEqual(MarkdownTableNormalizer.normalize(markdown), markdown)
     }
+
+    func testFencedCodeBlockContainingTableLikeTextRemainsUnchanged() {
+        let markdown = """
+        ```md
+        | A | B |
+        | --- | --- |
+        | first line
+        second line | tail |
+        ```
+        """
+
+        XCTAssertEqual(MarkdownTableNormalizer.normalize(markdown), markdown)
+    }
 }

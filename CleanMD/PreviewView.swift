@@ -1,6 +1,7 @@
 import SwiftUI
 import AppKit
 import WebKit
+import UniformTypeIdentifiers
 
 struct PreviewView: NSViewRepresentable {
     var text: String
@@ -23,6 +24,7 @@ struct PreviewView: NSViewRepresentable {
     func makeNSView(context: Context) -> WKWebView {
         let config = WKWebViewConfiguration()
         config.userContentController.add(context.coordinator, name: "scrollChanged")
+        config.setURLSchemeHandler(context.coordinator, forURLScheme: PreviewURLPolicy.localFileScheme)
 
         let webView = WKWebView(frame: .zero, configuration: config)
         webView.navigationDelegate = context.coordinator
@@ -31,7 +33,7 @@ struct PreviewView: NSViewRepresentable {
         context.coordinator.applyColorScheme(isDarkMode, to: webView)
         context.coordinator.applyUnderPageBackground(palette.previewBg, to: webView)
 
-        let html = Self.htmlTemplate()
+        let html = Self.htmlTemplate(resourceURL: Bundle.main.resourceURL)
         if let resourceURL = Bundle.main.resourceURL {
             webView.loadHTMLString(html, baseURL: resourceURL)
         } else {
@@ -47,9 +49,10 @@ struct PreviewView: NSViewRepresentable {
     }
 
     func updateNSView(_ webView: WKWebView, context: Context) {
-        context.coordinator.scheduleRender(text: text, previewMode: resolvedPreviewMode)
+        context.coordinator.scheduleRender(text: text, previewMode: resolvedPreviewMode, fileURL: fileURL)
         context.coordinator.applyColorScheme(isDarkMode, to: webView)
         context.coordinator.applyUnderPageBackground(palette.previewBg, to: webView)
+        context.coordinator.applyDocumentBaseURL(fileURL, to: webView)
         // Apply palette whenever it changes — covers dark/light switch AND user edits
         if context.coordinator.lastPalette != palette {
             context.coordinator.lastPalette = palette
@@ -64,15 +67,25 @@ struct PreviewView: NSViewRepresentable {
 
     // MARK: - HTML Template
 
-    static func htmlTemplate() -> String {
-        """
+    static func htmlTemplate(resourceURL: URL?) -> String {
+        let katexCSSURL = assetURLString(resourceURL: resourceURL, fileName: "katex.min.css")
+        let highlightCSSURL = assetURLString(resourceURL: resourceURL, fileName: "highlight.min.css")
+        let markedURL = assetURLString(resourceURL: resourceURL, fileName: "marked.min.js")
+        let highlightURL = assetURLString(resourceURL: resourceURL, fileName: "highlight.min.js")
+        let katexURL = assetURLString(resourceURL: resourceURL, fileName: "katex.min.js")
+        let autoRenderURL = assetURLString(resourceURL: resourceURL, fileName: "auto-render.min.js")
+        let allowedLinkSchemesJSON = PreviewURLPolicy.allowedSchemesJSON(for: .link)
+        let allowedImageSchemesJSON = PreviewURLPolicy.allowedSchemesJSON(for: .image)
+        let localFileScheme = PreviewURLPolicy.localFileScheme
+
+        return """
         <!DOCTYPE html>
         <html>
         <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <link rel="stylesheet" href="katex.min.css">
-        <link rel="stylesheet" href="highlight.min.css">
+        <link rel="stylesheet" href="\(katexCSSURL)">
+        <link rel="stylesheet" href="\(highlightCSSURL)">
         <style>
         :root {
             --preview-bg:      #ffffff;
@@ -201,11 +214,16 @@ struct PreviewView: NSViewRepresentable {
         img { max-width: 100%; }
         hr { border: none; border-top: 1px solid var(--hr-border); margin: 1.8em 0; }
         </style>
-        <script src="marked.min.js"></script>
-        <script src="highlight.min.js"></script>
-        <script src="katex.min.js"></script>
-        <script src="auto-render.min.js"></script>
+        <script src="\(markedURL)"></script>
+        <script src="\(highlightURL)"></script>
+        <script src="\(katexURL)"></script>
+        <script src="\(autoRenderURL)"></script>
         <script>
+        var allowedLinkSchemes = \(allowedLinkSchemesJSON);
+        var allowedImageSchemes = \(allowedImageSchemesJSON);
+        var localFileScheme = \(String(reflecting: localFileScheme));
+        var cleanMDDocumentBaseURL = null;
+
         function escapeHtml(raw) {
             return String(raw).replace(/[&<>"']/g, function(ch) {
                 switch (ch) {
@@ -223,21 +241,38 @@ struct PreviewView: NSViewRepresentable {
             return escapeHtml(raw);
         }
 
+        function resolveSanitizedURL(rawValue, allowedSchemes) {
+            var value = String(rawValue || '').trim();
+            if (!value) return '';
+            if (value[0] === '#') return value;
+
+            var resolved = value;
+            if (!/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(resolved)) {
+                if (!cleanMDDocumentBaseURL) return '';
+                try {
+                    resolved = new URL(resolved, cleanMDDocumentBaseURL).href;
+                } catch (e) {
+                    return '';
+                }
+            }
+
+            var schemeIndex = resolved.indexOf(':');
+            if (schemeIndex <= 0) return '';
+            var scheme = resolved.slice(0, schemeIndex).toLowerCase();
+            return allowedSchemes.indexOf(scheme) !== -1 ? resolved : '';
+        }
+
+        function rewriteLocalFileURL(resolvedURL) {
+            if (typeof resolvedURL !== 'string' || resolvedURL.indexOf('file://') !== 0) return resolvedURL;
+            return localFileScheme + '://' + resolvedURL.slice('file://'.length);
+        }
+
         function sanitizeLinkHref(rawHref) {
-            var href = String(rawHref || '').trim();
-            if (!href) return '';
-            if (href[0] === '#') return href;
-            if (!/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(href)) return '';
-            var scheme = href.slice(0, href.indexOf(':')).toLowerCase();
-            return (scheme === 'http' || scheme === 'https' || scheme === 'mailto') ? href : '';
+            return rewriteLocalFileURL(resolveSanitizedURL(rawHref, allowedLinkSchemes));
         }
 
         function sanitizeImageSrc(rawSrc) {
-            var src = String(rawSrc || '').trim();
-            if (!src) return '';
-            if (!/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(src)) return '';
-            var scheme = src.slice(0, src.indexOf(':')).toLowerCase();
-            return (scheme === 'http' || scheme === 'https') ? src : '';
+            return rewriteLocalFileURL(resolveSanitizedURL(rawSrc, allowedImageSchemes));
         }
 
         function normalizeLanguage(rawLang) {
@@ -380,10 +415,14 @@ struct PreviewView: NSViewRepresentable {
         function ensureRenderWorker() {
             if (renderWorker || workerUnavailable) return;
             try {
-                var markedURL = new URL('marked.min.js', document.baseURI).href;
-                var highlightURL = new URL('highlight.min.js', document.baseURI).href;
+                var markedURL = \(String(reflecting: markedURL));
+                var highlightURL = \(String(reflecting: highlightURL));
                 var workerSource = `
                 self.importScripts(${JSON.stringify(markedURL)}, ${JSON.stringify(highlightURL)});
+                var allowedLinkSchemes = ${JSON.stringify(allowedLinkSchemes)};
+                var allowedImageSchemes = ${JSON.stringify(allowedImageSchemes)};
+                var localFileScheme = ${JSON.stringify(localFileScheme)};
+                var cleanMDDocumentBaseURL = null;
                 
                 function escapeHtml(raw) {
                     return String(raw).replace(/[&<>"']/g, function(ch) {
@@ -402,21 +441,38 @@ struct PreviewView: NSViewRepresentable {
                     return escapeHtml(raw);
                 }
                 
+                function resolveSanitizedURL(rawValue, allowedSchemes) {
+                    var value = String(rawValue || '').trim();
+                    if (!value) return '';
+                    if (value[0] === '#') return value;
+
+                    var resolved = value;
+                    if (!/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(resolved)) {
+                        if (!cleanMDDocumentBaseURL) return '';
+                        try {
+                            resolved = new URL(resolved, cleanMDDocumentBaseURL).href;
+                        } catch (e) {
+                            return '';
+                        }
+                    }
+
+                    var schemeIndex = resolved.indexOf(':');
+                    if (schemeIndex <= 0) return '';
+                    var scheme = resolved.slice(0, schemeIndex).toLowerCase();
+                    return allowedSchemes.indexOf(scheme) !== -1 ? resolved : '';
+                }
+
+                function rewriteLocalFileURL(resolvedURL) {
+                    if (typeof resolvedURL !== 'string' || resolvedURL.indexOf('file://') !== 0) return resolvedURL;
+                    return localFileScheme + '://' + resolvedURL.slice('file://'.length);
+                }
+
                 function sanitizeLinkHref(rawHref) {
-                    var href = String(rawHref || '').trim();
-                    if (!href) return '';
-                    if (href[0] === '#') return href;
-                    if (!/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(href)) return '';
-                    var scheme = href.slice(0, href.indexOf(':')).toLowerCase();
-                    return (scheme === 'http' || scheme === 'https' || scheme === 'mailto') ? href : '';
+                    return rewriteLocalFileURL(resolveSanitizedURL(rawHref, allowedLinkSchemes));
                 }
 
                 function sanitizeImageSrc(rawSrc) {
-                    var src = String(rawSrc || '').trim();
-                    if (!src) return '';
-                    if (!/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(src)) return '';
-                    var scheme = src.slice(0, src.indexOf(':')).toLowerCase();
-                    return (scheme === 'http' || scheme === 'https') ? src : '';
+                    return rewriteLocalFileURL(resolveSanitizedURL(rawSrc, allowedImageSchemes));
                 }
                 
                 function normalizeLanguage(rawLang) {
@@ -529,6 +585,9 @@ struct PreviewView: NSViewRepresentable {
                     if (data.type !== 'render') return;
                     var text = String(data.text || '');
                     var mode = String(data.mode || 'markdown');
+                    cleanMDDocumentBaseURL = (typeof data.documentBaseURL === 'string' && data.documentBaseURL.length > 0)
+                        ? data.documentBaseURL
+                        : null;
                     var html = '';
                     try {
                         html = renderPreviewHtml(mode, text, highlightCache, 400);
@@ -588,9 +647,12 @@ struct PreviewView: NSViewRepresentable {
             }
         }
 
-        function renderPreview(mode, text) {
+        function renderPreview(mode, text, documentBaseURL) {
             latestRequestedMode = String(mode || 'markdown');
             latestRequestedText = text;
+            cleanMDDocumentBaseURL = (typeof documentBaseURL === 'string' && documentBaseURL.length > 0)
+                ? documentBaseURL
+                : null;
 
             // Render the initial document synchronously to remove startup lag.
             if (!hasRenderedFirstDocument) {
@@ -613,12 +675,13 @@ struct PreviewView: NSViewRepresentable {
                 type: 'render',
                 requestId: latestRequestId,
                 mode: latestRequestedMode,
-                text: text
+                text: text,
+                documentBaseURL: cleanMDDocumentBaseURL
             });
         }
 
         function renderMarkdown(text) {
-            renderPreview('markdown', text);
+            renderPreview('markdown', text, cleanMDDocumentBaseURL);
         }
 
         function updateColors(c) {
@@ -642,6 +705,10 @@ struct PreviewView: NSViewRepresentable {
             var r = document.documentElement.style;
             r.setProperty('--h1-divider-width', config.h1 ? '1px' : '0px');
             r.setProperty('--h2-divider-width', config.h2 ? '1px' : '0px');
+        }
+
+        function updateDocumentBaseURL(rawURL) {
+            cleanMDDocumentBaseURL = (typeof rawURL === 'string' && rawURL.length > 0) ? rawURL : null;
         }
 
         var suppressScrollEvent = false;
@@ -673,9 +740,13 @@ struct PreviewView: NSViewRepresentable {
         """
     }
 
+    private static func assetURLString(resourceURL: URL?, fileName: String) -> String {
+        resourceURL?.appendingPathComponent(fileName).absoluteString ?? fileName
+    }
+
     // MARK: - Coordinator
 
-    class Coordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
+    class Coordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler, WKURLSchemeHandler {
         var parent: PreviewView
         weak var webView: WKWebView?
 
@@ -687,22 +758,26 @@ struct PreviewView: NSViewRepresentable {
         private var lastRenderedRenderKey: String?
         private var pendingPalette: ColorPalette?
         private var pendingHeadingDividers: (Bool, Bool)?
+        private var pendingDocumentBaseURLString: String?
         private var lastAppliedDarkMode: Bool? = nil
         private var lastUnderPageBackgroundHex: String?
         private var lastAppliedHeadingDividers: (Bool, Bool)?
+        private var lastAppliedDocumentBaseURLString: String?
         var lastPalette: ColorPalette? = nil
 
         init(_ parent: PreviewView) {
             self.parent = parent
         }
 
-        func scheduleRender(text: String, previewMode: PreviewMode) {
+        func scheduleRender(text: String, previewMode: PreviewMode, fileURL: URL?) {
             let normalizedText = Self.normalizedText(text: text, previewMode: previewMode)
-            let renderKey = Self.renderKey(text: normalizedText, previewMode: previewMode)
+            let documentBaseKey = PreviewURLPolicy.documentBaseURLAbsoluteString(for: fileURL) ?? ""
+            let renderKey = Self.renderKey(text: normalizedText, previewMode: previewMode, documentBaseKey: documentBaseKey)
             guard renderKey != queuedRenderKey, renderKey != lastRenderedRenderKey else { return }
             queuedRenderKey = renderKey
             pendingText = normalizedText
             pendingPreviewMode = previewMode
+            pendingDocumentBaseURLString = PreviewURLPolicy.documentBaseURLAbsoluteString(for: fileURL)
             debounceTimer?.invalidate()
             guard isLoaded, let webView else { return }
             debounceTimer = Timer.scheduledTimer(
@@ -714,14 +789,16 @@ struct PreviewView: NSViewRepresentable {
             }
         }
 
-        private static func renderKey(text: String, previewMode: PreviewMode) -> String {
-            "\(previewMode.renderKey)|\(text)"
+        private static func renderKey(text: String, previewMode: PreviewMode, documentBaseKey: String) -> String {
+            "\(previewMode.renderKey)|\(documentBaseKey)|\(text)"
         }
 
         private static func normalizedText(text: String, previewMode: PreviewMode) -> String {
             switch previewMode {
             case .markdown:
-                return MarkdownTableNormalizer.normalize(text)
+                return MarkdownLinkDestinationNormalizer.normalize(
+                    MarkdownTableNormalizer.normalize(text)
+                )
             case .code:
                 return text
             }
@@ -751,6 +828,21 @@ struct PreviewView: NSViewRepresentable {
             }
         }
 
+        func applyDocumentBaseURL(_ fileURL: URL?, to webView: WKWebView) {
+            let target = PreviewURLPolicy.documentBaseURLAbsoluteString(for: fileURL)
+            guard target != lastAppliedDocumentBaseURLString else { return }
+            guard isLoaded else {
+                pendingDocumentBaseURLString = target
+                return
+            }
+
+            lastAppliedDocumentBaseURLString = target
+            pendingDocumentBaseURLString = target
+            let json = (try? JSONEncoder().encode(target))
+                .flatMap { String(data: $0, encoding: .utf8) } ?? "null"
+            webView.evaluateJavaScript("updateDocumentBaseURL(\(json));", completionHandler: nil)
+        }
+
         func applyPalette(_ palette: ColorPalette, to webView: WKWebView) {
             guard isLoaded else { pendingPalette = palette; return }
             guard let data = try? JSONEncoder().encode(palette),
@@ -771,16 +863,32 @@ struct PreviewView: NSViewRepresentable {
         private func render(text: String, previewMode: PreviewMode, in webView: WKWebView) {
             guard let data = try? JSONEncoder().encode(text),
                   let json = String(data: data, encoding: .utf8) else { return }
-            let renderKey = Self.renderKey(text: text, previewMode: previewMode)
+            let renderKey = Self.renderKey(
+                text: text,
+                previewMode: previewMode,
+                documentBaseKey: pendingDocumentBaseURLString ?? ""
+            )
             lastRenderedRenderKey = renderKey
             queuedRenderKey = nil
             let modeJSON = (try? JSONEncoder().encode(previewMode.renderKey))
                 .flatMap { String(data: $0, encoding: .utf8) } ?? "\"markdown\""
-            webView.evaluateJavaScript("renderPreview(\(modeJSON), \(json));", completionHandler: nil)
+            let documentBaseJSON = (try? JSONEncoder().encode(pendingDocumentBaseURLString))
+                .flatMap { String(data: $0, encoding: .utf8) } ?? "null"
+            webView.evaluateJavaScript(
+                "renderPreview(\(modeJSON), \(json), \(documentBaseJSON));",
+                completionHandler: nil
+            )
         }
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             isLoaded = true
+            let pendingDocumentBase = pendingDocumentBaseURLString ?? PreviewURLPolicy.documentBaseURLAbsoluteString(for: parent.fileURL)
+            if pendingDocumentBase != lastAppliedDocumentBaseURLString {
+                lastAppliedDocumentBaseURLString = pendingDocumentBase
+                let json = (try? JSONEncoder().encode(pendingDocumentBase))
+                    .flatMap { String(data: $0, encoding: .utf8) } ?? "null"
+                webView.evaluateJavaScript("updateDocumentBaseURL(\(json));", completionHandler: nil)
+            }
             if let text = pendingText {
                 render(text: text, previewMode: pendingPreviewMode, in: webView)
             }
@@ -801,17 +909,18 @@ struct PreviewView: NSViewRepresentable {
                 return
             }
 
-            if Self.isSameDocumentFragmentNavigation(url, currentURL: webView.url) {
+            switch PreviewURLPolicy.navigationAction(for: url, currentURL: webView.url) {
+            case .allowInPlace:
                 decisionHandler(.allow)
-                return
+            case .openExternally(let externalURL):
+                NSWorkspace.shared.open(externalURL)
+                decisionHandler(.cancel)
+            case .openDocument(let documentURL):
+                NSDocumentController.shared.openDocument(withContentsOf: documentURL, display: true) { _, _, _ in }
+                decisionHandler(.cancel)
+            case .cancel:
+                decisionHandler(.cancel)
             }
-
-            if let scheme = url.scheme?.lowercased(),
-               scheme == "http" || scheme == "https" || scheme == "mailto" {
-                NSWorkspace.shared.open(url)
-            }
-
-            decisionHandler(.cancel)
         }
 
         deinit {
@@ -826,18 +935,32 @@ struct PreviewView: NSViewRepresentable {
             DispatchQueue.main.async { self.parent.scrollSync.previewScrolled(to: fraction) }
         }
 
-        private static func isSameDocumentFragmentNavigation(_ url: URL, currentURL: URL?) -> Bool {
-            guard let currentURL,
-                  var targetComponents = URLComponents(url: url, resolvingAgainstBaseURL: false),
-                  var currentComponents = URLComponents(url: currentURL, resolvingAgainstBaseURL: false),
-                  let fragment = targetComponents.fragment,
-                  !fragment.isEmpty else {
-                return false
+        func webView(_ webView: WKWebView, start urlSchemeTask: any WKURLSchemeTask) {
+            guard let requestURL = urlSchemeTask.request.url,
+                  let fileURL = PreviewURLPolicy.fileURL(fromLocalPreviewURL: requestURL) else {
+                urlSchemeTask.didFailWithError(NSError(domain: NSURLErrorDomain, code: NSURLErrorBadURL))
+                return
             }
 
-            targetComponents.fragment = nil
-            currentComponents.fragment = nil
-            return targetComponents.url == currentComponents.url
+            do {
+                let data = try Data(contentsOf: fileURL)
+                let mimeType = PreviewURLPolicy.mimeType(for: fileURL, data: data)
+                let response = URLResponse(
+                    url: requestURL,
+                    mimeType: mimeType,
+                    expectedContentLength: data.count,
+                    textEncodingName: nil
+                )
+                urlSchemeTask.didReceive(response)
+                urlSchemeTask.didReceive(data)
+                urlSchemeTask.didFinish()
+            } catch {
+                urlSchemeTask.didFailWithError(error)
+            }
+        }
+
+        func webView(_ webView: WKWebView, stop urlSchemeTask: any WKURLSchemeTask) {
+            // No-op: requests are fulfilled synchronously in `start`.
         }
     }
 }

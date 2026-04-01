@@ -180,8 +180,7 @@ struct ColorSettingsPanel: View {
             Spacer()
             Button("Restore Defaults") {
                 withAnimation(.easeInOut(duration: 0.15)) {
-                    cs.lightPalette = .init()
-                    cs.darkPalette  = .darkDefault
+                    cs.restoreDefaults()
                 }
             }
             .controlSize(.small)

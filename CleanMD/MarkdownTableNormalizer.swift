@@ -9,6 +9,18 @@ enum MarkdownTableNormalizer {
         var index = 0
 
         while index < lines.count {
+            if let fence = fencedCodeBlockStart(for: lines[index]) {
+                repeat {
+                    let line = lines[index]
+                    normalized.append(line)
+                    index += 1
+                    if isClosingFence(line, matching: fence) {
+                        break
+                    }
+                } while index < lines.count
+                continue
+            }
+
             guard index + 1 < lines.count else {
                 normalized.append(lines[index])
                 break
@@ -114,6 +126,32 @@ enum MarkdownTableNormalizer {
 
         cells.append(current.trimmingCharacters(in: .whitespaces))
         return cells
+    }
+
+    private struct Fence {
+        let marker: Character
+        let length: Int
+    }
+
+    private static func fencedCodeBlockStart(for line: String) -> Fence? {
+        let trimmed = line.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return nil }
+        guard let marker = trimmed.first, marker == "`" || marker == "~" else { return nil }
+
+        let fenceLength = trimmed.prefix { $0 == marker }.count
+        guard fenceLength >= 3 else { return nil }
+        return Fence(marker: marker, length: fenceLength)
+    }
+
+    private static func isClosingFence(_ line: String, matching fence: Fence) -> Bool {
+        let trimmed = line.trimmingCharacters(in: .whitespaces)
+        guard let first = trimmed.first, first == fence.marker else { return false }
+
+        let fenceLength = trimmed.prefix { $0 == fence.marker }.count
+        guard fenceLength >= fence.length else { return false }
+
+        let remainder = trimmed.dropFirst(fenceLength)
+        return remainder.trimmingCharacters(in: .whitespaces).isEmpty
     }
 
     private static func isTableSeparatorLine(_ line: String, expectedColumnCount: Int) -> Bool {
