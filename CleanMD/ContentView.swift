@@ -10,7 +10,9 @@ struct ContentView: View {
     @AppStorage("isDarkMode") private var isDarkMode: Bool = false
     @SceneStorage("isSidebarCollapsed") private var isSidebarCollapsed: Bool = false
     @State private var isColorPanelVisible: Bool = false
+    @SceneStorage("appearanceInspectorWidth") private var appearanceInspectorWidth: Double = 396
     @State private var isDragTargeted = false
+    @State private var inspectorDragStartWidth: CGFloat?
     // Observing colorSettings causes ContentView to re-render when palette changes,
     // which propagates the new palette + version params to the NSViewRepresentables.
     @ObservedObject private var colorSettings = ColorSettings.shared
@@ -25,38 +27,20 @@ struct ContentView: View {
     }
 
     var body: some View {
-        NoDividerHSplitView(
-            left: FileExplorerView(
-                store: fileExplorerStore,
-                isCollapsed: $isSidebarCollapsed
-            ),
-            right: NoDividerHSplitView(
-                left: EditorView(
-                    text: $document.text,
-                    scrollSync: scrollSync,
-                    isDarkMode: isDarkMode,
-                    palette: colorSettings.palette(isDark: isDarkMode)
-                ),
-                right: PreviewView(
-                    text: document.text,
-                    scrollSync: scrollSync,
-                    isDarkMode: isDarkMode,
-                    palette: colorSettings.palette(isDark: isDarkMode),
-                    showH1Divider: colorSettings.showH1Divider,
-                    showH2Divider: colorSettings.showH2Divider,
-                    fileURL: fileURL
-                )
-            ),
-            layout: .init(
-                autosaveKey: "CleanMDSidebarExpandedWidthV2",
-                defaultLeftWidth: 220,
-                minLeftWidth: 170,
-                minRightWidth: 420,
-                collapsedLeftWidth: 36,
-                isCollapsed: $isSidebarCollapsed,
-                preserveLeftWidthOnResize: true
-            )
-        )
+        GeometryReader { geo in
+            HStack(spacing: 0) {
+                workspace
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+                if isColorPanelVisible {
+                    trailingAppearanceInspector(
+                        availableHeight: geo.size.height,
+                        totalWidth: geo.size.width
+                    )
+                    .transition(.move(edge: .trailing).combined(with: .opacity))
+                }
+            }
+        }
         .preferredColorScheme(isDarkMode ? .dark : .light)
         .background(WindowConfigurator(
             scrollSync: scrollSync,
@@ -95,28 +79,97 @@ struct ContentView: View {
                     .allowsHitTesting(false)
             }
         }
-        // Color-settings panel
-        .overlay(alignment: .topTrailing) {
-            GeometryReader { geo in
-                if isColorPanelVisible {
-                    ZStack(alignment: .topTrailing) {
-                        Color.black.opacity(0.50)
-                            .ignoresSafeArea()
-                            .onTapGesture { isColorPanelVisible = false }
+        .animation(.easeInOut(duration: 0.14), value: isColorPanelVisible)
+    }
 
-                        ColorSettingsPanel(
-                            isVisible: $isColorPanelVisible,
-                            availableHeight: geo.size.height
-                        )
-                        .padding(.top, 10)
-                        .padding(.trailing, 12)
-                        .transition(.opacity.combined(with: .scale(scale: 0.96, anchor: .topTrailing)))
-                    }
-                    .animation(.easeInOut(duration: 0.12), value: isColorPanelVisible)
-                    .zIndex(100)
-                }
-            }
+    private var workspace: some View {
+        NoDividerHSplitView(
+            left: FileExplorerView(
+                store: fileExplorerStore,
+                isCollapsed: $isSidebarCollapsed
+            ),
+            right: NoDividerHSplitView(
+                left: EditorView(
+                    text: $document.text,
+                    scrollSync: scrollSync,
+                    isDarkMode: isDarkMode,
+                    palette: colorSettings.palette(isDark: isDarkMode)
+                ),
+                right: PreviewView(
+                    text: document.text,
+                    scrollSync: scrollSync,
+                    isDarkMode: isDarkMode,
+                    palette: colorSettings.palette(isDark: isDarkMode),
+                    showH1Divider: colorSettings.showH1Divider,
+                    showH2Divider: colorSettings.showH2Divider,
+                    fileURL: fileURL
+                )
+            ),
+            layout: .init(
+                autosaveKey: "CleanMDSidebarExpandedWidthV2",
+                defaultLeftWidth: 220,
+                minLeftWidth: 170,
+                minRightWidth: 420,
+                collapsedLeftWidth: 36,
+                isCollapsed: $isSidebarCollapsed,
+                preserveLeftWidthOnResize: true
+            )
+        )
+    }
+
+    private func trailingAppearanceInspector(availableHeight: CGFloat, totalWidth: CGFloat) -> some View {
+        let inspectorWidth = clampedAppearanceInspectorWidth(totalWidth: totalWidth)
+
+        return HStack(spacing: 0) {
+            inspectorResizeHandle(totalWidth: totalWidth)
+
+            ColorSettingsPanel(
+                isVisible: $isColorPanelVisible,
+                availableHeight: availableHeight
+            )
+            .frame(width: inspectorWidth)
+            .frame(maxHeight: .infinity)
+            .background(Color(nsColor: .controlBackgroundColor))
         }
+    }
+
+    private func inspectorResizeHandle(totalWidth: CGFloat) -> some View {
+        ZStack {
+            Color(nsColor: .windowBackgroundColor)
+            Rectangle()
+                .fill(Color.primary.opacity(0.10))
+                .frame(width: 1)
+        }
+        .frame(width: 10)
+        .contentShape(Rectangle())
+        .gesture(
+            DragGesture(minimumDistance: 0)
+                .onChanged { value in
+                    if inspectorDragStartWidth == nil {
+                        inspectorDragStartWidth = clampedAppearanceInspectorWidth(totalWidth: totalWidth)
+                    }
+
+                    let baseWidth = inspectorDragStartWidth ?? clampedAppearanceInspectorWidth(totalWidth: totalWidth)
+                    let nextWidth = clampedAppearanceInspectorWidth(
+                        proposedWidth: baseWidth - value.translation.width,
+                        totalWidth: totalWidth
+                    )
+                    appearanceInspectorWidth = Double(nextWidth)
+                }
+                .onEnded { _ in
+                    inspectorDragStartWidth = nil
+                }
+        )
+    }
+
+    private func clampedAppearanceInspectorWidth(
+        proposedWidth: CGFloat? = nil,
+        totalWidth: CGFloat
+    ) -> CGFloat {
+        let minimum: CGFloat = 340
+        let maximum = max(minimum, min(520, totalWidth * 0.42))
+        let candidate: CGFloat = proposedWidth ?? CGFloat(appearanceInspectorWidth)
+        return min(max(candidate, minimum), maximum)
     }
 }
 
@@ -379,7 +432,8 @@ private struct WindowConfigurator: NSViewRepresentable {
         view.onWindowDidAttach = { window in
             let icons = TitleBarIcons(
                 scrollSync: context.coordinator.scrollSync,
-                isColorPanelVisible: isColorPanelVisible
+                isColorPanelVisible: isColorPanelVisible,
+                onToggleAppearancePanel: { context.coordinator.toggleAppearancePanel() }
             )
             let hosting = NSHostingView(rootView: icons)
             context.coordinator.titlebarHosting = hosting
@@ -398,23 +452,26 @@ private struct WindowConfigurator: NSViewRepresentable {
     func updateNSView(_ nsView: WindowSetupView, context: Context) {
         context.coordinator.titlebarHosting?.rootView = TitleBarIcons(
             scrollSync: scrollSync,
-            isColorPanelVisible: isColorPanelVisible
+            isColorPanelVisible: isColorPanelVisible,
+            onToggleAppearancePanel: { context.coordinator.toggleAppearancePanel() }
         )
     }
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(scrollSync: scrollSync)
+        Coordinator(scrollSync: scrollSync, isColorPanelVisible: isColorPanelVisible)
     }
 
     class Coordinator {
         let scrollSync: ScrollSyncController
+        let isColorPanelVisible: Binding<Bool>
         weak var titlebarHosting: NSHostingView<TitleBarIcons>?
         weak var window: NSWindow?
         private var observers: [NSObjectProtocol] = []
         private let frameKey = "CleanMDGlobalWindowFrame"
 
-        init(scrollSync: ScrollSyncController) {
+        init(scrollSync: ScrollSyncController, isColorPanelVisible: Binding<Bool>) {
             self.scrollSync = scrollSync
+            self.isColorPanelVisible = isColorPanelVisible
         }
 
         func configureWindow(_ window: NSWindow) {
@@ -463,6 +520,10 @@ private struct WindowConfigurator: NSViewRepresentable {
             UserDefaults.standard.set(NSStringFromRect(window.frame), forKey: frameKey)
         }
 
+        func toggleAppearancePanel() {
+            isColorPanelVisible.wrappedValue.toggle()
+        }
+
         private static func visibleWindowCount(excluding window: NSWindow) -> Int {
             NSApp.windows.filter {
                 $0 !== window &&
@@ -484,6 +545,7 @@ private struct TitleBarIcons: View {
     @AppStorage("isDarkMode") private var isDarkMode: Bool = false
     @ObservedObject var scrollSync: ScrollSyncController
     @Binding var isColorPanelVisible: Bool
+    let onToggleAppearancePanel: () -> Void
 
     @State private var darkHover    = false
     @State private var syncHover    = false
@@ -516,7 +578,7 @@ private struct TitleBarIcons: View {
                 .foregroundStyle(isColorPanelVisible ? Color.accentColor : .secondary)
                 .opacity(paletteHover ? 0.45 : 1.0)
                 .contentShape(Rectangle())
-                .onTapGesture { isColorPanelVisible.toggle() }
+                .onTapGesture { onToggleAppearancePanel() }
                 .onHover { paletteHover = $0 }
         }
         .padding(.horizontal, 6)

@@ -1,54 +1,144 @@
 import SwiftUI
-import AppKit
 
-// MARK: - Color Chip
-// Square swatch (click → native color panel) and separate hex field.
+// MARK: - Fused color control
 
-private struct ColorChip: View {
+private struct ColorValueControl: View {
     @Binding var hex: String
-    var body: some View { NativeColorChip(hex: $hex) }
+    @State private var isPopoverPresented = false
+    @State private var isHovered = false
+    @State private var isFieldFocused = false
+
+    private var isActive: Bool { isPopoverPresented || isFieldFocused }
+
+    var body: some View {
+        HStack(spacing: 0) {
+            Button {
+                isPopoverPresented.toggle()
+            } label: {
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .fill(Color(hex: hex))
+                    .frame(width: 26, height: 26)
+                    .padding(1)
+            }
+            .buttonStyle(.plain)
+            .popover(isPresented: $isPopoverPresented, arrowEdge: .bottom) {
+                QuickColorPopover(hex: $hex, isPresented: $isPopoverPresented)
+            }
+
+            Rectangle()
+                .fill(Color.primary.opacity(0.10))
+                .frame(width: 1, height: 18)
+
+            EmbeddedHexField(hex: $hex, isFocused: $isFieldFocused)
+                .frame(height: 28)
+        }
+        .background(
+            RoundedRectangle(cornerRadius: 7, style: .continuous)
+                .fill(Color.primary.opacity(0.06))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 7, style: .continuous)
+                        .strokeBorder(
+                            isActive
+                                ? Color.accentColor.opacity(0.8)
+                                : Color.primary.opacity(isHovered ? 0.24 : 0.14),
+                            lineWidth: isActive ? 1.5 : 1
+                        )
+                )
+        )
+        .contentShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+        .onHover { isHovered = $0 }
+    }
 }
 
-private struct NativeColorChip: NSViewRepresentable {
+private enum QuickColorSwatches {
+    static let rows: [[String]] = [
+        ["#ffffff", "#f7f8fa", "#eaecf0", "#d0d7de", "#8c959f", "#57606a", "#24292e", "#0d1117"],
+        ["#e3f2fd", "#bbdefb", "#90caf9", "#64b5f6", "#42a5f5", "#1e88e5", "#1565c0", "#0d47a1"],
+        ["#ede7f6", "#d1c4e9", "#b39ddb", "#9575cd", "#7e57c2", "#5e35b1", "#4527a0", "#311b92"],
+        ["#e8f5e9", "#c8e6c9", "#a5d6a7", "#81c784", "#66bb6a", "#43a047", "#2e7d32", "#1b5e20"],
+        ["#fff3e0", "#ffe0b2", "#ffcc80", "#ffb74d", "#ffa726", "#fb8c00", "#ef6c00", "#e65100"],
+        ["#fce4ec", "#f8bbd0", "#f48fb1", "#f06292", "#ec407a", "#d81b60", "#ad1457", "#880e4f"]
+    ]
+}
+
+private struct QuickColorPopover: View {
     @Binding var hex: String
+    @Binding var isPresented: Bool
 
-    func makeCoordinator() -> Coordinator { Coordinator(self) }
-
-    func makeNSView(context: Context) -> NSColorWell {
-        let well = NSColorWell(frame: .zero)
-        well.isBordered = true
-        if #available(macOS 13.0, *) {
-            well.colorWellStyle = .minimal
-        }
-        well.color = NSColor(hex: hex)
-        well.target = context.coordinator
-        well.action = #selector(Coordinator.colorChanged(_:))
-        return well
+    private var liveColor: Binding<Color> {
+        Binding(
+            get: { Color(hex: hex) },
+            set: { hex = $0.hexString.lowercased() }
+        )
     }
 
-    func updateNSView(_ well: NSColorWell, context: Context) {
-        context.coordinator.parent = self
-        let target = NSColor(hex: hex)
-        if !well.color.isEqual(target) {
-            well.color = target
-        }
-    }
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 10) {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(Color(hex: hex))
+                    .frame(width: 32, height: 32)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .strokeBorder(Color.primary.opacity(0.16), lineWidth: 1)
+                    )
 
-    final class Coordinator: NSObject {
-        var parent: NativeColorChip
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Pick color")
+                        .font(.system(size: 12, weight: .semibold))
+                    Text(hex.uppercased())
+                        .font(.system(size: 11, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                }
+            }
 
-        init(_ parent: NativeColorChip) {
-            self.parent = parent
-        }
+            VStack(spacing: 6) {
+                ForEach(Array(QuickColorSwatches.rows.enumerated()), id: \.offset) { _, row in
+                    HStack(spacing: 6) {
+                        ForEach(row, id: \.self) { swatch in
+                            Button {
+                                hex = swatch
+                                isPresented = false
+                            } label: {
+                                RoundedRectangle(cornerRadius: 5, style: .continuous)
+                                    .fill(Color(hex: swatch))
+                                    .frame(width: 20, height: 20)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 5, style: .continuous)
+                                            .strokeBorder(
+                                                hex == swatch ? Color.accentColor : Color.primary.opacity(0.16),
+                                                lineWidth: hex == swatch ? 1.5 : 1
+                                            )
+                                    )
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+            }
 
-        @objc func colorChanged(_ sender: NSColorWell) {
-            parent.hex = Color(sender.color).hexString.lowercased()
+            VStack(alignment: .leading, spacing: 6) {
+                HStack {
+                    Text("HEX")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    ColorPicker("", selection: liveColor, supportsOpacity: false)
+                        .labelsHidden()
+                        .scaleEffect(0.9)
+                }
+                StandaloneHexField(hex: $hex, fieldHeight: 26, cornerRadius: 6)
+            }
         }
+        .padding(12)
+        .frame(width: 236)
     }
 }
 
-private struct HexField: View {
+private struct StandaloneHexField: View {
     @Binding var hex: String
+    var fieldHeight: CGFloat = 22
+    var cornerRadius: CGFloat = 4
     @State private var hexInput = ""
     @FocusState private var hexFocused: Bool
 
@@ -59,12 +149,12 @@ private struct HexField: View {
             .padding(.horizontal, 6)
             .multilineTextAlignment(.center)
             .frame(maxWidth: .infinity, alignment: .center)
-            .frame(height: 22)
+            .frame(height: fieldHeight)
             .background(
-                RoundedRectangle(cornerRadius: 4)
+                RoundedRectangle(cornerRadius: cornerRadius)
                     .fill(Color.primary.opacity(0.07))
                     .overlay(
-                        RoundedRectangle(cornerRadius: 4)
+                        RoundedRectangle(cornerRadius: cornerRadius)
                             .strokeBorder(
                                 hexFocused ? Color.accentColor.opacity(0.7) : Color.primary.opacity(0.16),
                                 lineWidth: 1
@@ -79,11 +169,39 @@ private struct HexField: View {
     }
 
     private func commitHex() {
-        var s = hexInput.trimmingCharacters(in: .whitespaces)
-        if !s.hasPrefix("#") { s = "#" + s }
-        let body = String(s.dropFirst())
-        if body.count == 6, body.allSatisfy({ "0123456789abcdefABCDEF".contains($0) }) {
-            hex = s.lowercased()
+        if let normalized = ColorHex.normalize(hexInput) {
+            hex = normalized
+        }
+        hexInput = hex.uppercased()
+    }
+}
+
+private struct EmbeddedHexField: View {
+    @Binding var hex: String
+    @Binding var isFocused: Bool
+    @State private var hexInput = ""
+    @FocusState private var fieldFocused: Bool
+
+    var body: some View {
+        TextField("", text: $hexInput)
+            .font(.system(size: 10, design: .monospaced))
+            .textFieldStyle(.plain)
+            .padding(.horizontal, 7)
+            .multilineTextAlignment(.center)
+            .frame(maxWidth: .infinity)
+            .focused($fieldFocused)
+            .onSubmit { commitHex() }
+            .onChange(of: fieldFocused) {
+                isFocused = $0
+                if !$0 { commitHex() }
+            }
+            .onAppear { hexInput = hex.uppercased() }
+            .onChange(of: hex) { if !fieldFocused { hexInput = $0.uppercased() } }
+    }
+
+    private func commitHex() {
+        if let normalized = ColorHex.normalize(hexInput) {
+            hex = normalized
         }
         hexInput = hex.uppercased()
     }
@@ -101,19 +219,14 @@ struct ColorSettingsPanel: View {
     private var cp: ColorPalette { isDarkMode ? cs.darkPalette : cs.lightPalette }
 
     // Panel layout constants
-    private let col1: CGFloat = 168
-    private let chipSize: CGFloat = 22
-    private let hexWidth: CGFloat = 90
-    private let col2: CGFloat = 112   // Light: chip + hex
-    private let col3: CGFloat = 112   // Dark:  chip + hex
-    private let modeGap: CGFloat = 14
-    private var panelMaxHeight: CGFloat { min(760, max(220, availableHeight - 20)) }
-    private var panelMinHeight: CGFloat { min(420, panelMaxHeight) }
-
+    private let col1: CGFloat = 138
+    private let col2: CGFloat = 108
+    private let col3: CGFloat = 108
+    private let modeGap: CGFloat = 10
     var body: some View {
         VStack(spacing: 0) {
             header
-            Divider().opacity(0.4)
+            Divider().opacity(0.5)
             ScrollViewReader { proxy in
                 ScrollView {
                     VStack(spacing: 0) {
@@ -126,17 +239,12 @@ struct ColorSettingsPanel: View {
                 }
                 .onAppear { proxy.scrollTo("appearanceTop", anchor: .top) }
             }
-            Divider().opacity(0.4)
+            Divider().opacity(0.5)
             footer
         }
-        .frame(maxHeight: panelMaxHeight)
-        .frame(width: col1 + col2 + modeGap + col3 + 32)
-        .frame(minHeight: panelMinHeight, maxHeight: panelMaxHeight)
-        // Panel background = preview pane background → "preview of the preview"
-        .background(Color(hex: cp.previewBg), in: RoundedRectangle(cornerRadius: 12))
-        // Force SwiftUI colour scheme to match app's dark/light, not the OS setting
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .background(Color(nsColor: .controlBackgroundColor))
         .environment(\.colorScheme, isDarkMode ? .dark : .light)
-        .shadow(color: .black.opacity(0.30), radius: 24, y: 8)
     }
 
     // MARK: - Chrome
@@ -144,35 +252,36 @@ struct ColorSettingsPanel: View {
     private var header: some View {
         HStack {
             Text("Appearance")
-                .font(.system(size: 16, weight: .semibold))
+                .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(.primary)
             Spacer()
             Button { isVisible = false } label: {
                 Image(systemName: "xmark.circle.fill")
-                    .font(.system(size: 16))
+                    .font(.system(size: 14))
                     .foregroundStyle(.secondary)
             }
             .buttonStyle(.plain)
         }
         .padding(.horizontal, 14)
-        .padding(.vertical, 10)
+        .padding(.vertical, 11)
+        .background(Color(nsColor: .windowBackgroundColor).opacity(0.55))
     }
 
     private var colHeaders: some View {
         HStack(spacing: 0) {
             Text("Item")
                 .frame(width: col1, alignment: .leading)
-            Text("Light Mode")
+            Text("Light")
                 .frame(width: col2)
             Color.clear.frame(width: modeGap)
-            Text("Dark Mode")
+            Text("Dark")
                 .frame(width: col3)
         }
         .font(.system(size: 11, weight: .semibold))
         .foregroundStyle(.secondary)
         .padding(.horizontal, 14)
         .padding(.vertical, 8)
-        .background(Color.primary.opacity(0.06))
+        .background(Color.primary.opacity(0.04))
     }
 
     private var footer: some View {
@@ -187,6 +296,7 @@ struct ColorSettingsPanel: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 8)
+        .background(Color(nsColor: .windowBackgroundColor).opacity(0.35))
     }
 
     // MARK: - Editor rows
@@ -324,24 +434,18 @@ struct ColorSettingsPanel: View {
                 .frame(width: col1, alignment: .leading)
                 .clipped()
             HStack(spacing: 0) {
-                ColorChip(hex: lHex)
-                    .frame(width: chipSize, height: chipSize)
-                HexField(hex: lHex)
-                    .frame(width: hexWidth)
+                ColorValueControl(hex: lHex)
             }
             .frame(width: col2, alignment: .leading)
             .clipped()
             Color.clear.frame(width: modeGap)
             HStack(spacing: 0) {
-                ColorChip(hex: dHex)
-                    .frame(width: chipSize, height: chipSize)
-                HexField(hex: dHex)
-                    .frame(width: hexWidth)
+                ColorValueControl(hex: dHex)
             }
             .frame(width: col3, alignment: .leading)
             .clipped()
         }
-        .padding(.vertical, 6)
+        .padding(.vertical, 7)
         .padding(.horizontal, 14)
     }
 
@@ -355,7 +459,7 @@ struct ColorSettingsPanel: View {
                 .toggleStyle(.switch)
                 .frame(width: col2 + modeGap + col3, alignment: .leading)
         }
-        .padding(.vertical, 6)
+        .padding(.vertical, 7)
         .padding(.horizontal, 14)
     }
 
