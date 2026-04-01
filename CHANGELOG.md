@@ -4,6 +4,21 @@ All notable project updates are tracked here.
 
 ## Unreleased
 
+### Added
+
+- Appearance theme presets for **Default**, **Paper**, and **Cool**, each with paired light/dark palettes.
+
+### Improved
+
+- The docked appearance inspector now behaves more like a native panel with keyboard-friendly controls, resize affordances, and accessibility labels.
+- Appearance editing avoids unnecessary persistence work during live color changes and flushes pending settings safely on termination.
+- Preview rendering now shares one renderer/sanitization source between the main-thread fallback and worker path to reduce drift.
+
+### Fixed
+
+- Markdown table normalization now leaves fenced code blocks, indented code blocks, and raw HTML blocks untouched.
+- Preview URL handling now covers same-document fragment navigation and more local-path edge cases, including unicode and special-character file names.
+
 ## v0.9.0 — 2026-04-01
 
 ### Added
