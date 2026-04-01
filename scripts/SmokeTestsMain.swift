@@ -316,6 +316,29 @@ func testColorSettingsFlushPendingPersist() throws {
     try expect(defaults.string(forKey: "cp_v2_light") != nil, "flushPendingPersist should write pending palette changes")
 }
 
+func testColorSettingsPresetApplyAndDetection() throws {
+    let suiteName = "ColorSettingsSmoke.\(UUID().uuidString)"
+    guard let defaults = UserDefaults(suiteName: suiteName) else {
+        throw SmokeTestFailure(message: "Failed to create isolated defaults suite")
+    }
+    defer { defaults.removePersistentDomain(forName: suiteName) }
+
+    let settings = ColorSettings(
+        defaults: defaults,
+        persistDelay: 60,
+        notificationCenter: .init(),
+        observeTermination: false
+    )
+
+    settings.applyPreset(.paper)
+    try expect(settings.lightPalette == .paperLight, "paper preset should update the light palette")
+    try expect(settings.darkPalette == .paperDark, "paper preset should update the dark palette")
+    try expect(settings.currentPreset == .paper, "currentPreset should detect a matching preset")
+
+    settings.lightPalette.editorBg = "#010203"
+    try expect(settings.currentPreset == .custom, "manual palette edits should switch currentPreset to custom")
+}
+
 func testAppearanceInspectorLayoutClamp() throws {
     try expect(
         AppearanceInspectorLayout.clampedWidth(200, totalWidth: 1600) == 340,
@@ -364,6 +387,7 @@ enum SmokeTestsMain {
             ("WindowFramePolicyCascadesAdditionalWindows", testWindowFramePolicyCascadesAdditionalWindows),
             ("ColorHexNormalization", testColorHexNormalization),
             ("ColorSettingsFlushPendingPersist", testColorSettingsFlushPendingPersist),
+            ("ColorSettingsPresetApplyAndDetection", testColorSettingsPresetApplyAndDetection),
             ("AppearanceInspectorLayoutClamp", testAppearanceInspectorLayoutClamp),
             ("ScrollSyncControllerStartsLinked", testScrollSyncControllerStartsLinked),
             ("ScrollSyncControllerSyncsPreviewByDefault", testScrollSyncControllerSyncsPreviewByDefault)

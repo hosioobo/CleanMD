@@ -46,4 +46,33 @@ final class ColorSettingsTests: XCTestCase {
 
         XCTAssertNotNil(defaults.string(forKey: "cp_v2_light"))
     }
+
+    func testApplyPresetSwitchesBothLightAndDarkPalettes() {
+        let settings = ColorSettings(
+            defaults: UserDefaults(suiteName: "ColorSettingsTests.\(UUID().uuidString)")!,
+            persistDelay: 60,
+            notificationCenter: .init(),
+            observeTermination: false
+        )
+
+        settings.applyPreset(.paper)
+
+        XCTAssertEqual(settings.lightPalette, .paperLight)
+        XCTAssertEqual(settings.darkPalette, .paperDark)
+        XCTAssertEqual(settings.currentPreset, .paper)
+    }
+
+    func testCurrentPresetFallsBackToCustomForManualPaletteEdits() {
+        let settings = ColorSettings(
+            defaults: UserDefaults(suiteName: "ColorSettingsTests.\(UUID().uuidString)")!,
+            persistDelay: 60,
+            notificationCenter: .init(),
+            observeTermination: false
+        )
+
+        settings.applyPreset(.cool)
+        settings.lightPalette.editorBg = "#010203"
+
+        XCTAssertEqual(settings.currentPreset, .custom)
+    }
 }
