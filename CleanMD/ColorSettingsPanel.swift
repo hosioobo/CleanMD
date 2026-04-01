@@ -227,17 +227,13 @@ struct ColorSettingsPanel: View {
         VStack(spacing: 0) {
             header
             Divider().opacity(0.5)
-            ScrollViewReader { proxy in
-                ScrollView {
-                    VStack(spacing: 0) {
-                        Color.clear.frame(height: 0).id("appearanceTop")
-                        colHeaders
-                        Divider().opacity(0.4)
-                        editorRows
-                        previewRows
-                    }
+            ScrollView {
+                VStack(spacing: 0) {
+                    colHeaders
+                    Divider().opacity(0.4)
+                    editorRows
+                    previewRows
                 }
-                .onAppear { proxy.scrollTo("appearanceTop", anchor: .top) }
             }
             Divider().opacity(0.5)
             footer

@@ -37,7 +37,6 @@ struct ContentView: View {
                         availableHeight: geo.size.height,
                         totalWidth: geo.size.width
                     )
-                    .transition(.move(edge: .trailing).combined(with: .opacity))
                 }
             }
         }
@@ -79,7 +78,6 @@ struct ContentView: View {
                     .allowsHitTesting(false)
             }
         }
-        .animation(.easeInOut(duration: 0.14), value: isColorPanelVisible)
     }
 
     private var workspace: some View {
