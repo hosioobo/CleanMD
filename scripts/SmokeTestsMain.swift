@@ -58,6 +58,32 @@ func testMarkdownTableNormalizer() throws {
     try expect(lines[2].contains("lanes/raw/notes/ screenshots/curriculum-3-guest-post-sell.png"), "continued table cell content should stay in the same row")
 }
 
+func testMarkdownTableNormalizerLeavesFencedCodeBlocksUntouched() throws {
+    let markdown = """
+    ```md
+    | A | B |
+    | --- | --- |
+    | first line
+    second line | tail |
+    ```
+    """
+
+    try expect(
+        MarkdownTableNormalizer.normalize(markdown) == markdown,
+        "table normalizer should not rewrite fenced code blocks"
+    )
+}
+
+func testMarkdownLinkDestinationNormalizerWrapsLocalDestinationsWithSpaces() throws {
+    let source = "![img](./Screenshot 2026-03-20 at 11.51.17 AM.png)"
+    let expected = "![img](<./Screenshot 2026-03-20 at 11.51.17 AM.png>)"
+
+    try expect(
+        MarkdownLinkDestinationNormalizer.normalize(source) == expected,
+        "markdown preview should normalize local destinations with spaces so the parser recognizes them"
+    )
+}
+
 func testRecentDocumentHistoryMerge() throws {
     let first = URL(fileURLWithPath: "/tmp/alpha.md")
     let second = URL(fileURLWithPath: "/tmp/beta.yaml")
@@ -153,6 +179,79 @@ func testFileExplorerStore() throws {
     try expect(recordedURL == alpha.standardizedFileURL, "updating current file should record a recent document")
 }
 
+func testPreviewURLPolicyResolvesRelativeLocalURLs() throws {
+    let fileURL = URL(fileURLWithPath: "/tmp/docs/guide.md")
+    let documentBaseURL = PreviewURLPolicy.documentBaseURL(for: fileURL)
+
+    try expect(
+        PreviewURLPolicy.resolvedURLString(from: "./nested/other.md", kind: .link, documentBaseURL: documentBaseURL) == "file:///tmp/docs/nested/other.md",
+        "relative markdown links should resolve against the current document folder"
+    )
+
+    try expect(
+        PreviewURLPolicy.resolvedURLString(from: "images/diagram.png", kind: .image, documentBaseURL: documentBaseURL) == "file:///tmp/docs/images/diagram.png",
+        "relative image sources should resolve against the current document folder"
+    )
+}
+
+func testPreviewURLPolicyOpensSupportedLocalFilesAsDocuments() throws {
+    let noteURL = URL(fileURLWithPath: "/tmp/docs/note.md")
+    try expect(
+        PreviewURLPolicy.navigationAction(for: noteURL, currentURL: nil) == .openDocument(noteURL.standardizedFileURL),
+        "supported local file links should open as documents"
+    )
+}
+
+func testPreviewURLPolicyRoundTripsLocalPreviewURLsWithSpaces() throws {
+    let fileURL = URL(fileURLWithPath: "/tmp/docs/images/space name #1.png")
+    let previewURL = PreviewURLPolicy.localPreviewURL(for: fileURL)
+
+    try expect(
+        PreviewURLPolicy.fileURL(fromLocalPreviewURL: previewURL) == fileURL.standardizedFileURL,
+        "custom preview local URLs should decode back to the original file URL"
+    )
+}
+
+func testPreviewURLPolicyDetectsPNGDataWithoutExtension() throws {
+    let fileURL = URL(fileURLWithPath: "/tmp/docs/image-without-extension")
+    let data = Data([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00])
+
+    try expect(
+        PreviewURLPolicy.mimeType(for: fileURL, data: data) == "image/png",
+        "extensionless PNG data should still be served with image/png MIME type"
+    )
+}
+
+func testWindowFramePolicyCascadesAdditionalWindows() throws {
+    let savedFrame = CGRect(x: 100, y: 200, width: 1100, height: 720)
+    let frame = WindowFramePolicy.placementFrame(
+        savedFrame: savedFrame,
+        visibleFrame: CGRect(x: 0, y: 0, width: 1600, height: 1000),
+        existingWindowCount: 1
+    )
+
+    try expect(
+        frame.equalTo(CGRect(x: 128, y: 172, width: 1100, height: 720)),
+        "additional windows should open slightly lower-right than the saved frame"
+    )
+}
+
+func testScrollSyncControllerStartsLinked() throws {
+    let controller = ScrollSyncController()
+    try expect(controller.isLinked, "scroll sync should start linked by default")
+}
+
+func testScrollSyncControllerSyncsPreviewByDefault() throws {
+    let controller = ScrollSyncController()
+    var syncedFractions: [CGFloat] = []
+    controller.onScrollPreviewTo = { syncedFractions.append($0) }
+
+    controller.editorScrolled(to: 0.42)
+
+    try expect(syncedFractions.count == 1, "default linked controller should forward editor scroll to preview")
+    try expect(abs(syncedFractions[0] - 0.42) < 0.0001, "forwarded preview fraction should match editor fraction")
+}
+
 @main
 enum SmokeTestsMain {
     static func main() throws {
@@ -160,8 +259,17 @@ enum SmokeTestsMain {
             ("SupportedDocumentKind", testSupportedDocumentKind),
             ("PathDisplayFormatter", testPathDisplayFormatter),
             ("MarkdownTableNormalizer", testMarkdownTableNormalizer),
+            ("MarkdownTableNormalizerLeavesFencedCodeBlocksUntouched", testMarkdownTableNormalizerLeavesFencedCodeBlocksUntouched),
+            ("MarkdownLinkDestinationNormalizerWrapsLocalDestinationsWithSpaces", testMarkdownLinkDestinationNormalizerWrapsLocalDestinationsWithSpaces),
             ("RecentDocumentHistory", testRecentDocumentHistoryMerge),
-            ("FileExplorerStore", testFileExplorerStore)
+            ("FileExplorerStore", testFileExplorerStore),
+            ("PreviewURLPolicyResolvesRelativeLocalURLs", testPreviewURLPolicyResolvesRelativeLocalURLs),
+            ("PreviewURLPolicyOpensSupportedLocalFilesAsDocuments", testPreviewURLPolicyOpensSupportedLocalFilesAsDocuments),
+            ("PreviewURLPolicyRoundTripsLocalPreviewURLsWithSpaces", testPreviewURLPolicyRoundTripsLocalPreviewURLsWithSpaces),
+            ("PreviewURLPolicyDetectsPNGDataWithoutExtension", testPreviewURLPolicyDetectsPNGDataWithoutExtension),
+            ("WindowFramePolicyCascadesAdditionalWindows", testWindowFramePolicyCascadesAdditionalWindows),
+            ("ScrollSyncControllerStartsLinked", testScrollSyncControllerStartsLinked),
+            ("ScrollSyncControllerSyncsPreviewByDefault", testScrollSyncControllerSyncsPreviewByDefault)
         ]
 
         for (name, test) in tests {

@@ -424,16 +424,16 @@ private struct WindowConfigurator: NSViewRepresentable {
                 addObservers(for: window)
             }
 
-            if let raw = UserDefaults.standard.string(forKey: frameKey) {
-                let saved = NSRectFromString(raw)
-                if saved.width > 300, saved.height > 240 {
-                    window.setFrame(saved, display: false, animate: false)
-                    return
-                }
-            }
+            let savedFrame: CGRect? = UserDefaults.standard.string(forKey: frameKey).map(NSRectFromString)
+            let visibleFrame = window.screen?.visibleFrame ?? NSScreen.main?.visibleFrame
+            let existingWindowCount = Self.visibleWindowCount(excluding: window)
+            let targetFrame = WindowFramePolicy.placementFrame(
+                savedFrame: savedFrame,
+                visibleFrame: visibleFrame,
+                existingWindowCount: existingWindowCount
+            )
 
-            window.setFrame(NSRect(x: 0, y: 0, width: 1100, height: 720), display: false, animate: false)
-            window.center()
+            window.setFrame(targetFrame, display: false, animate: false)
         }
 
         private func addObservers(for window: NSWindow) {
@@ -461,6 +461,15 @@ private struct WindowConfigurator: NSViewRepresentable {
         private func saveWindowFrame() {
             guard let window else { return }
             UserDefaults.standard.set(NSStringFromRect(window.frame), forKey: frameKey)
+        }
+
+        private static func visibleWindowCount(excluding window: NSWindow) -> Int {
+            NSApp.windows.filter {
+                $0 !== window &&
+                $0.isVisible &&
+                !$0.isMiniaturized &&
+                $0.canBecomeMain
+            }.count
         }
 
         deinit {

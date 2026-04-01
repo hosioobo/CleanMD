@@ -4,6 +4,8 @@ import AppKit
 // MARK: - ColorPalette
 
 struct ColorPalette: Codable, Equatable {
+    static let lightDefault = ColorPalette()
+
     var editorBg:     String = "#F7F8FA"
     var editorText:   String = "#24292e"
     var previewBg:    String = "#ffffff"
@@ -50,33 +52,44 @@ final class ColorSettings: ObservableObject {
 
     func palette(isDark: Bool) -> ColorPalette { isDark ? darkPalette : lightPalette }
 
-    private init() {
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+
         func load<T: Decodable>(_ key: String) -> T? {
-            guard let s = UserDefaults.standard.string(forKey: key),
+            guard let s = defaults.string(forKey: key),
                   let v = try? JSONDecoder().decode(T.self, from: Data(s.utf8)) else { return nil }
             return v
         }
         // v2 keys — new schema (h1/h2/h3 instead of heading)
         if let p: ColorPalette = load("cp_v2_light") { lightPalette = p }
         if let p: ColorPalette = load("cp_v2_dark")  { darkPalette  = p }
-        if UserDefaults.standard.object(forKey: "cp_show_h1_divider") != nil {
-            showH1Divider = UserDefaults.standard.bool(forKey: "cp_show_h1_divider")
+        if defaults.object(forKey: "cp_show_h1_divider") != nil {
+            showH1Divider = defaults.bool(forKey: "cp_show_h1_divider")
         }
-        if UserDefaults.standard.object(forKey: "cp_show_h2_divider") != nil {
-            showH2Divider = UserDefaults.standard.bool(forKey: "cp_show_h2_divider")
+        if defaults.object(forKey: "cp_show_h2_divider") != nil {
+            showH2Divider = defaults.bool(forKey: "cp_show_h2_divider")
         }
+    }
+
+    private let defaults: UserDefaults
+
+    func restoreDefaults() {
+        lightPalette = .lightDefault
+        darkPalette = .darkDefault
+        showH1Divider = true
+        showH2Divider = true
     }
 
     private func persist() {
         func store<T: Encodable>(_ v: T, key: String) {
             guard let d = try? JSONEncoder().encode(v),
                   let s = String(data: d, encoding: .utf8) else { return }
-            UserDefaults.standard.set(s, forKey: key)
+            defaults.set(s, forKey: key)
         }
         store(lightPalette, key: "cp_v2_light")
         store(darkPalette,  key: "cp_v2_dark")
-        UserDefaults.standard.set(showH1Divider, forKey: "cp_show_h1_divider")
-        UserDefaults.standard.set(showH2Divider, forKey: "cp_show_h2_divider")
+        defaults.set(showH1Divider, forKey: "cp_show_h1_divider")
+        defaults.set(showH2Divider, forKey: "cp_show_h2_divider")
     }
 }
 
