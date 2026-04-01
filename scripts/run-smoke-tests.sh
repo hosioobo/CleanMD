@@ -18,6 +18,7 @@ swiftc \
   -F "$FRAMEWORKS_PATH" \
   "$PROJECT_DIR/CleanMD/SupportedDocumentKind.swift" \
   "$PROJECT_DIR/CleanMD/PathDisplayFormatter.swift" \
+  "$PROJECT_DIR/CleanMD/ColorHex.swift" \
   "$PROJECT_DIR/CleanMD/MarkdownTableNormalizer.swift" \
   "$PROJECT_DIR/CleanMD/MarkdownLinkDestinationNormalizer.swift" \
   "$PROJECT_DIR/CleanMD/PreviewURLPolicy.swift" \

@@ -236,6 +236,12 @@ func testWindowFramePolicyCascadesAdditionalWindows() throws {
     )
 }
 
+func testColorHexNormalization() throws {
+    try expect(ColorHex.normalize("ABCDEF") == "#abcdef", "bare six-digit hex should normalize with leading hash")
+    try expect(ColorHex.normalize("  #1A2b3C  ") == "#1a2b3c", "hex normalization should trim whitespace and lowercase")
+    try expect(ColorHex.normalize("#12345") == nil, "invalid hex should be rejected")
+}
+
 func testScrollSyncControllerStartsLinked() throws {
     let controller = ScrollSyncController()
     try expect(controller.isLinked, "scroll sync should start linked by default")
@@ -268,6 +274,7 @@ enum SmokeTestsMain {
             ("PreviewURLPolicyRoundTripsLocalPreviewURLsWithSpaces", testPreviewURLPolicyRoundTripsLocalPreviewURLsWithSpaces),
             ("PreviewURLPolicyDetectsPNGDataWithoutExtension", testPreviewURLPolicyDetectsPNGDataWithoutExtension),
             ("WindowFramePolicyCascadesAdditionalWindows", testWindowFramePolicyCascadesAdditionalWindows),
+            ("ColorHexNormalization", testColorHexNormalization),
             ("ScrollSyncControllerStartsLinked", testScrollSyncControllerStartsLinked),
             ("ScrollSyncControllerSyncsPreviewByDefault", testScrollSyncControllerSyncsPreviewByDefault)
         ]
