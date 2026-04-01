@@ -36,68 +36,72 @@ struct ColorPalette: Codable, Equatable {
         link:         "#79c0ff"
     )
 
+    // Warm preset tuned toward the popular Obsidian "Things" aesthetic:
+    // native-feeling warm neutrals with understated tan/orange accents.
     static let paperLight = ColorPalette(
-        editorBg:     "#f6f0e2",
-        editorText:   "#4d3b2a",
-        previewBg:    "#fbf4e6",
-        previewText:  "#4d3b2a",
-        h1:           "#3f2f21",
-        h2:           "#4d3b2a",
-        h3:           "#5b4633",
-        inlineCodeBg: "#eadfcb",
-        inlineCodeFg: "#4d3b2a",
-        codeBlockBg:  "#efe5d3",
-        quoteText:    "#6a5644",
-        quoteBorder:  "#c8b79a",
-        link:         "#8b5e34"
+        editorBg:     "#f7f3eb",
+        editorText:   "#41362e",
+        previewBg:    "#fcf8f1",
+        previewText:  "#433831",
+        h1:           "#8b5e34",
+        h2:           "#7d6a2d",
+        h3:           "#6d7b3d",
+        inlineCodeBg: "#efe6cd",
+        inlineCodeFg: "#7a4e2f",
+        codeBlockBg:  "#ede0cf",
+        quoteText:    "#6f6257",
+        quoteBorder:  "#d4c4b0",
+        link:         "#a14a3b"
     )
 
     static let paperDark = ColorPalette(
-        editorBg:     "#2d241d",
-        editorText:   "#e8dcc7",
-        previewBg:    "#241d18",
-        previewText:  "#e8dcc7",
-        h1:           "#f3e8d3",
-        h2:           "#eadfc9",
-        h3:           "#d8c6aa",
-        inlineCodeBg: "#3a3028",
-        inlineCodeFg: "#f1e6d2",
-        codeBlockBg:  "#332a23",
-        quoteText:    "#c8b79d",
-        quoteBorder:  "#6c5a49",
-        link:         "#d8a36d"
+        editorBg:     "#1f1b19",
+        editorText:   "#e8dfd2",
+        previewBg:    "#191614",
+        previewText:  "#e9e0d3",
+        h1:           "#e4b67c",
+        h2:           "#cdbb72",
+        h3:           "#9fb476",
+        inlineCodeBg: "#3a3128",
+        inlineCodeFg: "#ebb58e",
+        codeBlockBg:  "#302722",
+        quoteText:    "#c6b4a3",
+        quoteBorder:  "#66574d",
+        link:         "#d98674"
     )
 
+    // Cool preset tuned toward the popular Obsidian "Blue Topaz" aesthetic:
+    // crisp blue surfaces, brighter contrast, and stronger cyan/blue accents.
     static let coolLight = ColorPalette(
-        editorBg:     "#f3f7fb",
-        editorText:   "#1f3347",
-        previewBg:    "#f7fbff",
-        previewText:  "#20384c",
-        h1:           "#173247",
-        h2:           "#234761",
-        h3:           "#2f5975",
-        inlineCodeBg: "#dfeaf4",
-        inlineCodeFg: "#20415a",
-        codeBlockBg:  "#e6eff7",
-        quoteText:    "#536b7d",
-        quoteBorder:  "#b6cad9",
-        link:         "#0d6efd"
+        editorBg:     "#eef5fb",
+        editorText:   "#23384d",
+        previewBg:    "#f5fbff",
+        previewText:  "#223a50",
+        h1:           "#2364aa",
+        h2:           "#3b82c4",
+        h3:           "#6a6edc",
+        inlineCodeBg: "#dde6fb",
+        inlineCodeFg: "#4f56c7",
+        codeBlockBg:  "#deedf7",
+        quoteText:    "#5b7085",
+        quoteBorder:  "#acc7df",
+        link:         "#0ea5c6"
     )
 
     static let coolDark = ColorPalette(
-        editorBg:     "#131c26",
-        editorText:   "#d9e7f3",
-        previewBg:    "#0f1720",
-        previewText:  "#dce9f4",
-        h1:           "#f3f8fc",
-        h2:           "#d7e7f5",
-        h3:           "#b8d0e4",
-        inlineCodeBg: "#22303d",
-        inlineCodeFg: "#dceaf7",
-        codeBlockBg:  "#1b2732",
-        quoteText:    "#a7bfd2",
-        quoteBorder:  "#395062",
-        link:         "#7cc4ff"
+        editorBg:     "#0f1824",
+        editorText:   "#d6e8f8",
+        previewBg:    "#0c1520",
+        previewText:  "#d9ebfb",
+        h1:           "#7cc4ff",
+        h2:           "#5fb2ff",
+        h3:           "#8f9cff",
+        inlineCodeBg: "#1d2b46",
+        inlineCodeFg: "#b7b8ff",
+        codeBlockBg:  "#132331",
+        quoteText:    "#9db9d6",
+        quoteBorder:  "#35516d",
+        link:         "#54d2ff"
     )
 }
 
