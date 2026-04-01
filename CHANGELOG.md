@@ -4,6 +4,8 @@ All notable project updates are tracked here.
 
 ## Unreleased
 
+## v0.10.0 — 2026-04-01
+
 ### Added
 
 - Appearance theme presets for **Default**, **Paper**, and **Cool**, each with paired light/dark palettes.

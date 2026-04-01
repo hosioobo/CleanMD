@@ -16,7 +16,8 @@ CleanMD is a native macOS Markdown editor focused on speed, simplicity, and a cl
 - Offline-first bundled renderer assets
 - Opens `.md`, `.markdown`, `.yml`, and `.yaml` files
 - Drag and drop supported text documents into the app
-- Customizable preview color palette and heading dividers
+- Docked appearance inspector with live palette editing
+- Built-in appearance presets: Default, Paper, and Cool
 
 ## Screenshots
 
@@ -90,8 +91,9 @@ Please keep the app lightweight and offline-friendly. If you change bundled thir
 ## Release Notes
 
 - See [`CHANGELOG.md`](CHANGELOG.md) for recent updates after the first release.
-- See [`RELEASE_NOTES_v0.9.0.md`](RELEASE_NOTES_v0.9.0.md) for the latest feature release notes.
-- See [`RELEASE_NOTES_v0.8.0.md`](RELEASE_NOTES_v0.8.0.md) for the previous feature release notes.
+- See [`RELEASE_NOTES_v0.10.0.md`](RELEASE_NOTES_v0.10.0.md) for the latest feature release notes.
+- See [`RELEASE_NOTES_v0.9.0.md`](RELEASE_NOTES_v0.9.0.md) for the previous feature release notes.
+- See [`RELEASE_NOTES_v0.8.0.md`](RELEASE_NOTES_v0.8.0.md) for the older feature release notes.
 - See [`RELEASE_NOTES_v0.7.0.md`](RELEASE_NOTES_v0.7.0.md) for the first public release notes.
 
 ## Versioning and Releases
