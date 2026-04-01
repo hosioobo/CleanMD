@@ -74,6 +74,36 @@ func testMarkdownTableNormalizerLeavesFencedCodeBlocksUntouched() throws {
     )
 }
 
+func testMarkdownTableNormalizerLeavesIndentedCodeBlocksUntouched() throws {
+    let markdown = """
+        | A | B |
+        | --- | --- |
+        | first line
+        second line | tail |
+    """
+
+    try expect(
+        MarkdownTableNormalizer.normalize(markdown) == markdown,
+        "table normalizer should not rewrite indented code blocks"
+    )
+}
+
+func testMarkdownTableNormalizerLeavesRawHTMLBlocksUntouched() throws {
+    let markdown = """
+    <pre>
+    | A | B |
+    | --- | --- |
+    | first line
+    second line | tail |
+    </pre>
+    """
+
+    try expect(
+        MarkdownTableNormalizer.normalize(markdown) == markdown,
+        "table normalizer should not rewrite raw HTML blocks"
+    )
+}
+
 func testMarkdownLinkDestinationNormalizerWrapsLocalDestinationsWithSpaces() throws {
     let source = "![img](./Screenshot 2026-03-20 at 11.51.17 AM.png)"
     let expected = "![img](<./Screenshot 2026-03-20 at 11.51.17 AM.png>)"
@@ -182,15 +212,27 @@ func testFileExplorerStore() throws {
 func testPreviewURLPolicyResolvesRelativeLocalURLs() throws {
     let fileURL = URL(fileURLWithPath: "/tmp/docs/guide.md")
     let documentBaseURL = PreviewURLPolicy.documentBaseURL(for: fileURL)
+    let expectedMarkdownURL = URL(fileURLWithPath: "/tmp/docs/nested/other.md").standardizedFileURL
+    let expectedImageURL = URL(fileURLWithPath: "/tmp/docs/images/diagram.png").standardizedFileURL
+    let expectedUnicodeImageURL = URL(fileURLWithPath: "/tmp/docs/이미지 폴더/테스트 이미지 #1.png").standardizedFileURL
 
     try expect(
-        PreviewURLPolicy.resolvedURLString(from: "./nested/other.md", kind: .link, documentBaseURL: documentBaseURL) == "file:///tmp/docs/nested/other.md",
+        URL(string: PreviewURLPolicy.resolvedURLString(from: "./nested/other.md", kind: .link, documentBaseURL: documentBaseURL) ?? "")?.standardizedFileURL == expectedMarkdownURL,
         "relative markdown links should resolve against the current document folder"
     )
 
     try expect(
-        PreviewURLPolicy.resolvedURLString(from: "images/diagram.png", kind: .image, documentBaseURL: documentBaseURL) == "file:///tmp/docs/images/diagram.png",
+        URL(string: PreviewURLPolicy.resolvedURLString(from: "images/diagram.png", kind: .image, documentBaseURL: documentBaseURL) ?? "")?.standardizedFileURL == expectedImageURL,
         "relative image sources should resolve against the current document folder"
+    )
+
+    try expect(
+        URL(string: PreviewURLPolicy.resolvedURLString(
+            from: "./이미지 폴더/테스트 이미지 #1.png",
+            kind: .image,
+            documentBaseURL: documentBaseURL
+        ) ?? "")?.standardizedFileURL == expectedUnicodeImageURL,
+        "relative image sources with unicode and spaces should resolve and percent-encode correctly"
     )
 }
 
@@ -219,6 +261,16 @@ func testPreviewURLPolicyDetectsPNGDataWithoutExtension() throws {
     try expect(
         PreviewURLPolicy.mimeType(for: fileURL, data: data) == "image/png",
         "extensionless PNG data should still be served with image/png MIME type"
+    )
+}
+
+func testPreviewURLPolicyAllowsSameDocumentFragmentNavigation() throws {
+    let currentURL = URL(string: "https://example.com/docs/page.html")!
+    let targetURL = URL(string: "https://example.com/docs/page.html#section-2")!
+
+    try expect(
+        PreviewURLPolicy.navigationAction(for: targetURL, currentURL: currentURL) == .allowInPlace,
+        "same-document fragment navigation should stay in place"
     )
 }
 
@@ -264,6 +316,17 @@ func testColorSettingsFlushPendingPersist() throws {
     try expect(defaults.string(forKey: "cp_v2_light") != nil, "flushPendingPersist should write pending palette changes")
 }
 
+func testAppearanceInspectorLayoutClamp() throws {
+    try expect(
+        AppearanceInspectorLayout.clampedWidth(200, totalWidth: 1600) == 340,
+        "appearance inspector width should clamp to the minimum"
+    )
+    try expect(
+        AppearanceInspectorLayout.clampedWidth(900, totalWidth: 1200) == 504,
+        "appearance inspector width should clamp to the calculated maximum"
+    )
+}
+
 func testScrollSyncControllerStartsLinked() throws {
     let controller = ScrollSyncController()
     try expect(controller.isLinked, "scroll sync should start linked by default")
@@ -288,6 +351,8 @@ enum SmokeTestsMain {
             ("PathDisplayFormatter", testPathDisplayFormatter),
             ("MarkdownTableNormalizer", testMarkdownTableNormalizer),
             ("MarkdownTableNormalizerLeavesFencedCodeBlocksUntouched", testMarkdownTableNormalizerLeavesFencedCodeBlocksUntouched),
+            ("MarkdownTableNormalizerLeavesIndentedCodeBlocksUntouched", testMarkdownTableNormalizerLeavesIndentedCodeBlocksUntouched),
+            ("MarkdownTableNormalizerLeavesRawHTMLBlocksUntouched", testMarkdownTableNormalizerLeavesRawHTMLBlocksUntouched),
             ("MarkdownLinkDestinationNormalizerWrapsLocalDestinationsWithSpaces", testMarkdownLinkDestinationNormalizerWrapsLocalDestinationsWithSpaces),
             ("RecentDocumentHistory", testRecentDocumentHistoryMerge),
             ("FileExplorerStore", testFileExplorerStore),
@@ -295,9 +360,11 @@ enum SmokeTestsMain {
             ("PreviewURLPolicyOpensSupportedLocalFilesAsDocuments", testPreviewURLPolicyOpensSupportedLocalFilesAsDocuments),
             ("PreviewURLPolicyRoundTripsLocalPreviewURLsWithSpaces", testPreviewURLPolicyRoundTripsLocalPreviewURLsWithSpaces),
             ("PreviewURLPolicyDetectsPNGDataWithoutExtension", testPreviewURLPolicyDetectsPNGDataWithoutExtension),
+            ("PreviewURLPolicyAllowsSameDocumentFragmentNavigation", testPreviewURLPolicyAllowsSameDocumentFragmentNavigation),
             ("WindowFramePolicyCascadesAdditionalWindows", testWindowFramePolicyCascadesAdditionalWindows),
             ("ColorHexNormalization", testColorHexNormalization),
             ("ColorSettingsFlushPendingPersist", testColorSettingsFlushPendingPersist),
+            ("AppearanceInspectorLayoutClamp", testAppearanceInspectorLayoutClamp),
             ("ScrollSyncControllerStartsLinked", testScrollSyncControllerStartsLinked),
             ("ScrollSyncControllerSyncsPreviewByDefault", testScrollSyncControllerSyncsPreviewByDefault)
         ]

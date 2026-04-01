@@ -95,6 +95,8 @@ enum PreviewURLPolicy {
         let resolvedURL: URL?
         if let parsed = URL(string: trimmed), parsed.scheme != nil {
             resolvedURL = parsed
+        } else if let documentBaseURL, documentBaseURL.isFileURL {
+            resolvedURL = resolvedLocalFileURL(from: trimmed, relativeTo: documentBaseURL)
         } else if let documentBaseURL {
             resolvedURL = URL(string: trimmed, relativeTo: documentBaseURL)?.absoluteURL
         } else {
@@ -108,6 +110,14 @@ enum PreviewURLPolicy {
         }
 
         return resolvedURL.absoluteString
+    }
+
+    private static func resolvedLocalFileURL(from rawPath: String, relativeTo baseURL: URL) -> URL {
+        if rawPath.hasPrefix("/") {
+            return URL(fileURLWithPath: rawPath).standardizedFileURL
+        }
+
+        return URL(fileURLWithPath: rawPath, relativeTo: baseURL).standardizedFileURL
     }
 
     static func navigationAction(for url: URL, currentURL: URL?) -> PreviewNavigationAction {

@@ -4,6 +4,7 @@ import SwiftUI
 
 private struct ColorValueControl: View {
     @Binding var hex: String
+    let label: String
     @State private var isPopoverPresented = false
     @State private var isHovered = false
     @State private var isFieldFocused = false
@@ -21,15 +22,17 @@ private struct ColorValueControl: View {
                     .padding(1)
             }
             .buttonStyle(.plain)
+            .help("Choose \(label.lowercased()) color")
+            .accessibilityLabel("Choose \(label) color")
             .popover(isPresented: $isPopoverPresented, arrowEdge: .bottom) {
-                QuickColorPopover(hex: $hex, isPresented: $isPopoverPresented)
+                QuickColorPopover(hex: $hex, isPresented: $isPopoverPresented, controlName: label)
             }
 
             Rectangle()
                 .fill(Color.primary.opacity(0.10))
                 .frame(width: 1, height: 18)
 
-            EmbeddedHexField(hex: $hex, isFocused: $isFieldFocused)
+            EmbeddedHexField(hex: $hex, isFocused: $isFieldFocused, label: label)
                 .frame(height: 28)
         }
         .background(
@@ -64,6 +67,7 @@ private enum QuickColorSwatches {
 private struct QuickColorPopover: View {
     @Binding var hex: String
     @Binding var isPresented: Bool
+    let controlName: String
 
     private var liveColor: Binding<Color> {
         Binding(
@@ -112,6 +116,7 @@ private struct QuickColorPopover: View {
                                     )
                             }
                             .buttonStyle(.plain)
+                            .accessibilityLabel("\(controlName) preset \(swatch.uppercased())")
                         }
                     }
                 }
@@ -126,8 +131,14 @@ private struct QuickColorPopover: View {
                     ColorPicker("", selection: liveColor, supportsOpacity: false)
                         .labelsHidden()
                         .scaleEffect(0.9)
+                        .accessibilityLabel("Custom \(controlName) color")
                 }
-                StandaloneHexField(hex: $hex, fieldHeight: 26, cornerRadius: 6)
+                StandaloneHexField(
+                    hex: $hex,
+                    label: "\(controlName) hex value",
+                    fieldHeight: 26,
+                    cornerRadius: 6
+                )
             }
         }
         .padding(12)
@@ -137,6 +148,7 @@ private struct QuickColorPopover: View {
 
 private struct StandaloneHexField: View {
     @Binding var hex: String
+    let label: String
     var fieldHeight: CGFloat = 22
     var cornerRadius: CGFloat = 4
     @State private var hexInput = ""
@@ -162,6 +174,7 @@ private struct StandaloneHexField: View {
                     )
             )
             .focused($hexFocused)
+            .accessibilityLabel(label)
             .onSubmit { commitHex() }
             .onChange(of: hexFocused) { if !$0 { commitHex() } }
             .onAppear { hexInput = hex.uppercased() }
@@ -179,6 +192,7 @@ private struct StandaloneHexField: View {
 private struct EmbeddedHexField: View {
     @Binding var hex: String
     @Binding var isFocused: Bool
+    let label: String
     @State private var hexInput = ""
     @FocusState private var fieldFocused: Bool
 
@@ -190,6 +204,7 @@ private struct EmbeddedHexField: View {
             .multilineTextAlignment(.center)
             .frame(maxWidth: .infinity)
             .focused($fieldFocused)
+            .accessibilityLabel("\(label) hex value")
             .onSubmit { commitHex() }
             .onChange(of: fieldFocused) {
                 isFocused = $0
@@ -257,6 +272,8 @@ struct ColorSettingsPanel: View {
                     .foregroundStyle(.secondary)
             }
             .buttonStyle(.plain)
+            .help("Close Appearance Inspector")
+            .accessibilityLabel("Close Appearance Inspector")
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 11)
@@ -300,10 +317,10 @@ struct ColorSettingsPanel: View {
     private var editorRows: some View {
         VStack(spacing: 0) {
             sectionLabel("EDITOR")
-            row(l: $cs.lightPalette.editorBg, d: $cs.darkPalette.editorBg) {
+            row(l: $cs.lightPalette.editorBg, d: $cs.darkPalette.editorBg, accessibilityName: "Editor background") {
                 bgSwatchLabel(hex: cp.editorBg, name: "Background")
             }
-            row(l: $cs.lightPalette.editorText, d: $cs.darkPalette.editorText) {
+            row(l: $cs.lightPalette.editorText, d: $cs.darkPalette.editorText, accessibilityName: "Editor text") {
                 aaLabel(hex: cp.editorText, name: "Text")
             }
         }
@@ -315,29 +332,29 @@ struct ColorSettingsPanel: View {
         VStack(spacing: 0) {
             sectionLabel("PREVIEW")
 
-            row(l: $cs.lightPalette.previewBg, d: $cs.darkPalette.previewBg) {
+            row(l: $cs.lightPalette.previewBg, d: $cs.darkPalette.previewBg, accessibilityName: "Preview background") {
                 bgSwatchLabel(hex: cp.previewBg, name: "Background")
             }
-            row(l: $cs.lightPalette.previewText, d: $cs.darkPalette.previewText) {
+            row(l: $cs.lightPalette.previewText, d: $cs.darkPalette.previewText, accessibilityName: "Preview body text") {
                 aaLabel(hex: cp.previewText, name: "Body Text")
             }
 
             // Headings — rendered at appropriate scale so the row IS the preview
-            row(l: $cs.lightPalette.h1, d: $cs.darkPalette.h1) {
+            row(l: $cs.lightPalette.h1, d: $cs.darkPalette.h1, accessibilityName: "Heading 1") {
                 Text("Heading 1")
                     .font(.system(size: 17, weight: .bold))
                     .foregroundStyle(Color(hex: cp.h1))
                     .lineLimit(1)
             }
             toggleRow(label: "H1 Divider", isOn: $cs.showH1Divider)
-            row(l: $cs.lightPalette.h2, d: $cs.darkPalette.h2) {
+            row(l: $cs.lightPalette.h2, d: $cs.darkPalette.h2, accessibilityName: "Heading 2") {
                 Text("Heading 2")
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(Color(hex: cp.h2))
                     .lineLimit(1)
             }
             toggleRow(label: "H2 Divider", isOn: $cs.showH2Divider)
-            row(l: $cs.lightPalette.h3, d: $cs.darkPalette.h3) {
+            row(l: $cs.lightPalette.h3, d: $cs.darkPalette.h3, accessibilityName: "Heading 3") {
                 Text("Heading 3")
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(Color(hex: cp.h3))
@@ -345,7 +362,7 @@ struct ColorSettingsPanel: View {
             }
 
             // Code block
-            row(l: $cs.lightPalette.codeBlockBg, d: $cs.darkPalette.codeBlockBg) {
+            row(l: $cs.lightPalette.codeBlockBg, d: $cs.darkPalette.codeBlockBg, accessibilityName: "Code block background") {
                 HStack(spacing: 7) {
                     RoundedRectangle(cornerRadius: 3)
                         .fill(Color(hex: cp.codeBlockBg))
@@ -361,13 +378,13 @@ struct ColorSettingsPanel: View {
             }
 
             // Inline code
-            row(l: $cs.lightPalette.inlineCodeBg, d: $cs.darkPalette.inlineCodeBg) {
+            row(l: $cs.lightPalette.inlineCodeBg, d: $cs.darkPalette.inlineCodeBg, accessibilityName: "Inline code background") {
                 HStack(spacing: 5) {
                     codePill
                     Text("Background").font(.system(size: 11)).foregroundStyle(.secondary)
                 }
             }
-            row(l: $cs.lightPalette.inlineCodeFg, d: $cs.darkPalette.inlineCodeFg) {
+            row(l: $cs.lightPalette.inlineCodeFg, d: $cs.darkPalette.inlineCodeFg, accessibilityName: "Inline code text") {
                 HStack(spacing: 5) {
                     codePill
                     Text("Text").font(.system(size: 11)).foregroundStyle(.secondary)
@@ -375,7 +392,7 @@ struct ColorSettingsPanel: View {
             }
 
             // Blockquote
-            row(l: $cs.lightPalette.quoteText, d: $cs.darkPalette.quoteText) {
+            row(l: $cs.lightPalette.quoteText, d: $cs.darkPalette.quoteText, accessibilityName: "Quote text") {
                 HStack(spacing: 0) {
                     quoteLine
                     Text("  Quote Text")
@@ -383,7 +400,7 @@ struct ColorSettingsPanel: View {
                         .foregroundStyle(Color(hex: cp.quoteText))
                 }
             }
-            row(l: $cs.lightPalette.quoteBorder, d: $cs.darkPalette.quoteBorder) {
+            row(l: $cs.lightPalette.quoteBorder, d: $cs.darkPalette.quoteBorder, accessibilityName: "Quote border") {
                 HStack(spacing: 0) {
                     quoteLine
                     Text("  Quote Border").font(.system(size: 12)).foregroundStyle(.secondary)
@@ -391,7 +408,7 @@ struct ColorSettingsPanel: View {
             }
 
             // Link
-            row(l: $cs.lightPalette.link, d: $cs.darkPalette.link) {
+            row(l: $cs.lightPalette.link, d: $cs.darkPalette.link, accessibilityName: "Link") {
                 Text("Link text")
                     .font(.system(size: 12))
                     .foregroundStyle(Color(hex: cp.link))
@@ -420,31 +437,6 @@ struct ColorSettingsPanel: View {
 
     // MARK: - Row builder
 
-    private func row<L: View>(
-        l lHex: Binding<String>,
-        d dHex: Binding<String>,
-        @ViewBuilder label: () -> L
-    ) -> some View {
-        return HStack(alignment: .center, spacing: 0) {
-            label()
-                .frame(width: col1, alignment: .leading)
-                .clipped()
-            HStack(spacing: 0) {
-                ColorValueControl(hex: lHex)
-            }
-            .frame(width: col2, alignment: .leading)
-            .clipped()
-            Color.clear.frame(width: modeGap)
-            HStack(spacing: 0) {
-                ColorValueControl(hex: dHex)
-            }
-            .frame(width: col3, alignment: .leading)
-            .clipped()
-        }
-        .padding(.vertical, 7)
-        .padding(.horizontal, 14)
-    }
-
     private func toggleRow(label: String, isOn: Binding<Bool>) -> some View {
         HStack(alignment: .center, spacing: 0) {
             Text(label)
@@ -454,6 +446,7 @@ struct ColorSettingsPanel: View {
                 .labelsHidden()
                 .toggleStyle(.switch)
                 .frame(width: col2 + modeGap + col3, alignment: .leading)
+                .accessibilityLabel(label)
         }
         .padding(.vertical, 7)
         .padding(.horizontal, 14)
@@ -491,5 +484,31 @@ struct ColorSettingsPanel: View {
                 .foregroundStyle(Color(hex: hex))
             Text(name).font(.system(size: 12))
         }
+    }
+
+    private func row<L: View>(
+        l lHex: Binding<String>,
+        d dHex: Binding<String>,
+        accessibilityName: String,
+        @ViewBuilder label: () -> L
+    ) -> some View {
+        HStack(alignment: .center, spacing: 0) {
+            label()
+                .frame(width: col1, alignment: .leading)
+                .clipped()
+            HStack(spacing: 0) {
+                ColorValueControl(hex: lHex, label: "Light \(accessibilityName)")
+            }
+            .frame(width: col2, alignment: .leading)
+            .clipped()
+            Color.clear.frame(width: modeGap)
+            HStack(spacing: 0) {
+                ColorValueControl(hex: dHex, label: "Dark \(accessibilityName)")
+            }
+            .frame(width: col3, alignment: .leading)
+            .clipped()
+        }
+        .padding(.vertical, 7)
+        .padding(.horizontal, 14)
     }
 }
