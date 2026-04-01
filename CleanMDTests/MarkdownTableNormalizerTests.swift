@@ -42,4 +42,28 @@ final class MarkdownTableNormalizerTests: XCTestCase {
 
         XCTAssertEqual(MarkdownTableNormalizer.normalize(markdown), markdown)
     }
+
+    func testIndentedCodeBlockContainingTableLikeTextRemainsUnchanged() {
+        let markdown = """
+            | A | B |
+            | --- | --- |
+            | first line
+            second line | tail |
+        """
+
+        XCTAssertEqual(MarkdownTableNormalizer.normalize(markdown), markdown)
+    }
+
+    func testRawHTMLBlockContainingTableLikeTextRemainsUnchanged() {
+        let markdown = """
+        <pre>
+        | A | B |
+        | --- | --- |
+        | first line
+        second line | tail |
+        </pre>
+        """
+
+        XCTAssertEqual(MarkdownTableNormalizer.normalize(markdown), markdown)
+    }
 }

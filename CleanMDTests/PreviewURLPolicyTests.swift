@@ -4,6 +4,7 @@ import XCTest
 final class PreviewURLPolicyTests: XCTestCase {
     func testResolvesRelativeLinkAgainstDocumentFolder() {
         let fileURL = URL(fileURLWithPath: "/tmp/docs/guide.md")
+        let expectedURL = URL(fileURLWithPath: "/tmp/docs/nested/other.md").standardizedFileURL
 
         let resolved = PreviewURLPolicy.resolvedURLString(
             from: "./nested/other.md",
@@ -11,11 +12,12 @@ final class PreviewURLPolicyTests: XCTestCase {
             documentBaseURL: PreviewURLPolicy.documentBaseURL(for: fileURL)
         )
 
-        XCTAssertEqual(resolved, "file:///tmp/docs/nested/other.md")
+        XCTAssertEqual(URL(string: resolved ?? "")?.standardizedFileURL, expectedURL)
     }
 
     func testResolvesRelativeImageAgainstDocumentFolder() {
         let fileURL = URL(fileURLWithPath: "/tmp/docs/guide.md")
+        let expectedURL = URL(fileURLWithPath: "/tmp/docs/images/diagram.png").standardizedFileURL
 
         let resolved = PreviewURLPolicy.resolvedURLString(
             from: "images/diagram.png",
@@ -23,7 +25,20 @@ final class PreviewURLPolicyTests: XCTestCase {
             documentBaseURL: PreviewURLPolicy.documentBaseURL(for: fileURL)
         )
 
-        XCTAssertEqual(resolved, "file:///tmp/docs/images/diagram.png")
+        XCTAssertEqual(URL(string: resolved ?? "")?.standardizedFileURL, expectedURL)
+    }
+
+    func testResolvesRelativeImageAgainstDocumentFolderWithUnicodeAndSpaces() {
+        let fileURL = URL(fileURLWithPath: "/tmp/docs/guide.md")
+        let expectedURL = URL(fileURLWithPath: "/tmp/docs/이미지 폴더/테스트 이미지 #1.png").standardizedFileURL
+
+        let resolved = PreviewURLPolicy.resolvedURLString(
+            from: "./이미지 폴더/테스트 이미지 #1.png",
+            kind: .image,
+            documentBaseURL: PreviewURLPolicy.documentBaseURL(for: fileURL)
+        )
+
+        XCTAssertEqual(URL(string: resolved ?? "")?.standardizedFileURL, expectedURL)
     }
 
     func testRejectsUnsupportedSchemes() {
@@ -65,5 +80,15 @@ final class PreviewURLPolicyTests: XCTestCase {
         let data = Data([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00])
 
         XCTAssertEqual(PreviewURLPolicy.mimeType(for: fileURL, data: data), "image/png")
+    }
+
+    func testSameDocumentFragmentNavigationIsAllowedInPlace() {
+        let currentURL = URL(string: "https://example.com/docs/page.html")!
+        let targetURL = URL(string: "https://example.com/docs/page.html#section-2")!
+
+        XCTAssertEqual(
+            PreviewURLPolicy.navigationAction(for: targetURL, currentURL: currentURL),
+            .allowInPlace
+        )
     }
 }

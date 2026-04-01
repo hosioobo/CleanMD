@@ -10,9 +10,10 @@ struct ContentView: View {
     @AppStorage("isDarkMode") private var isDarkMode: Bool = false
     @SceneStorage("isSidebarCollapsed") private var isSidebarCollapsed: Bool = false
     @State private var isColorPanelVisible: Bool = false
-    @SceneStorage("appearanceInspectorWidth") private var appearanceInspectorWidth: Double = 396
+    @SceneStorage("appearanceInspectorWidth") private var appearanceInspectorWidth: Double = Double(AppearanceInspectorLayout.defaultWidth)
     @State private var isDragTargeted = false
     @State private var inspectorDragStartWidth: CGFloat?
+    @State private var inspectorResizeCursorActive = false
     // Observing colorSettings causes ContentView to re-render when palette changes,
     // which propagates the new palette + version params to the NSViewRepresentables.
     @ObservedObject private var colorSettings = ColorSettings.shared
@@ -140,6 +141,23 @@ struct ContentView: View {
         }
         .frame(width: 10)
         .contentShape(Rectangle())
+        .onHover { hovering in
+            guard hovering != inspectorResizeCursorActive else { return }
+            inspectorResizeCursorActive = hovering
+            if hovering {
+                NSCursor.resizeLeftRight.push()
+            } else {
+                NSCursor.pop()
+            }
+        }
+        .onDisappear {
+            if inspectorResizeCursorActive {
+                NSCursor.pop()
+                inspectorResizeCursorActive = false
+            }
+        }
+        .help("Resize Appearance Inspector")
+        .accessibilityLabel("Resize Appearance Inspector")
         .gesture(
             DragGesture(minimumDistance: 0)
                 .onChanged { value in
@@ -164,10 +182,8 @@ struct ContentView: View {
         proposedWidth: CGFloat? = nil,
         totalWidth: CGFloat
     ) -> CGFloat {
-        let minimum: CGFloat = 340
-        let maximum = max(minimum, min(520, totalWidth * 0.42))
         let candidate: CGFloat = proposedWidth ?? CGFloat(appearanceInspectorWidth)
-        return min(max(candidate, minimum), maximum)
+        return AppearanceInspectorLayout.clampedWidth(candidate, totalWidth: totalWidth)
     }
 }
 
@@ -465,6 +481,7 @@ private struct WindowConfigurator: NSViewRepresentable {
         weak var titlebarHosting: NSHostingView<TitleBarIcons>?
         weak var window: NSWindow?
         private var observers: [NSObjectProtocol] = []
+        private var keyMonitor: Any?
         private let frameKey = "CleanMDGlobalWindowFrame"
 
         init(scrollSync: ScrollSyncController, isColorPanelVisible: Binding<Bool>) {
@@ -503,6 +520,17 @@ private struct WindowConfigurator: NSViewRepresentable {
                     self?.saveWindowFrame()
                 }
             )
+
+            if keyMonitor == nil {
+                keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+                    guard let self else { return event }
+                    guard self.isColorPanelVisible.wrappedValue else { return event }
+                    guard event.modifierFlags.intersection(.deviceIndependentFlagsMask).isEmpty else { return event }
+                    guard event.keyCode == 53 else { return event }
+                    self.isColorPanelVisible.wrappedValue = false
+                    return nil
+                }
+            }
         }
 
         private func removeObservers() {
@@ -511,6 +539,10 @@ private struct WindowConfigurator: NSViewRepresentable {
                 nc.removeObserver(token)
             }
             observers.removeAll()
+            if let keyMonitor {
+                NSEvent.removeMonitor(keyMonitor)
+                self.keyMonitor = nil
+            }
         }
 
         private func saveWindowFrame() {
@@ -552,32 +584,50 @@ private struct TitleBarIcons: View {
     var body: some View {
         HStack(spacing: 14) {
             // Scroll sync icon
-            ScrollSyncIcon(isLinked: scrollSync.isLinked)
-                .foregroundStyle(.secondary)
-                .opacity(syncHover ? 0.45 : 1.0)
-                .contentShape(Rectangle())
-                .onTapGesture { scrollSync.toggleLinking() }
-                .onHover { syncHover = $0 }
+            Button {
+                scrollSync.toggleLinking()
+            } label: {
+                ScrollSyncIcon(isLinked: scrollSync.isLinked)
+                    .foregroundStyle(.secondary)
+                    .opacity(syncHover ? 0.45 : 1.0)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .help(scrollSync.isLinked ? "Disable Scroll Sync" : "Enable Scroll Sync")
+            .accessibilityLabel(scrollSync.isLinked ? "Disable Scroll Sync" : "Enable Scroll Sync")
+            .onHover { syncHover = $0 }
 
             // Dark / light toggle
-            Image(systemName: isDarkMode ? "sun.max.fill" : "moon.fill")
-                .font(.system(size: 11.5, weight: .medium))
-                .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(.secondary)
-                .opacity(darkHover ? 0.45 : 1.0)
-                .contentShape(Rectangle())
-                .onTapGesture { isDarkMode.toggle() }
-                .onHover { darkHover = $0 }
+            Button {
+                isDarkMode.toggle()
+            } label: {
+                Image(systemName: isDarkMode ? "sun.max.fill" : "moon.fill")
+                    .font(.system(size: 11.5, weight: .medium))
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(.secondary)
+                    .opacity(darkHover ? 0.45 : 1.0)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .help(isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode")
+            .accessibilityLabel(isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode")
+            .onHover { darkHover = $0 }
 
             // Color settings
-            Image(systemName: "paintpalette")
-                .font(.system(size: 11.5, weight: .medium))
-                .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(isColorPanelVisible ? Color.accentColor : .secondary)
-                .opacity(paletteHover ? 0.45 : 1.0)
-                .contentShape(Rectangle())
-                .onTapGesture { onToggleAppearancePanel() }
-                .onHover { paletteHover = $0 }
+            Button {
+                onToggleAppearancePanel()
+            } label: {
+                Image(systemName: "paintpalette")
+                    .font(.system(size: 11.5, weight: .medium))
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(isColorPanelVisible ? Color.accentColor : .secondary)
+                    .opacity(paletteHover ? 0.45 : 1.0)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .help(isColorPanelVisible ? "Hide Appearance Inspector" : "Show Appearance Inspector")
+            .accessibilityLabel(isColorPanelVisible ? "Hide Appearance Inspector" : "Show Appearance Inspector")
+            .onHover { paletteHover = $0 }
         }
         .padding(.horizontal, 6)
         .padding(.vertical, 3)

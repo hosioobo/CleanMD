@@ -9,12 +9,33 @@ enum MarkdownTableNormalizer {
         var index = 0
 
         while index < lines.count {
+            if isIndentedCodeBlockLine(lines[index]) {
+                repeat {
+                    let line = lines[index]
+                    normalized.append(line)
+                    index += 1
+                } while index < lines.count && (isIndentedCodeBlockLine(lines[index]) || lines[index].trimmingCharacters(in: .whitespaces).isEmpty)
+                continue
+            }
+
             if let fence = fencedCodeBlockStart(for: lines[index]) {
                 repeat {
                     let line = lines[index]
                     normalized.append(line)
                     index += 1
                     if isClosingFence(line, matching: fence) {
+                        break
+                    }
+                } while index < lines.count
+                continue
+            }
+
+            if let htmlBlock = htmlBlockStart(for: lines[index]) {
+                repeat {
+                    let line = lines[index]
+                    normalized.append(line)
+                    index += 1
+                    if isClosingHTMLBlock(line, tagName: htmlBlock) {
                         break
                     }
                 } while index < lines.count
@@ -133,6 +154,21 @@ enum MarkdownTableNormalizer {
         let length: Int
     }
 
+    private static func isIndentedCodeBlockLine(_ line: String) -> Bool {
+        if line.hasPrefix("\t") { return true }
+
+        var spaceCount = 0
+        for character in line {
+            if character == " " {
+                spaceCount += 1
+                if spaceCount >= 4 { return true }
+                continue
+            }
+            break
+        }
+        return false
+    }
+
     private static func fencedCodeBlockStart(for line: String) -> Fence? {
         let trimmed = line.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty else { return nil }
@@ -152,6 +188,29 @@ enum MarkdownTableNormalizer {
 
         let remainder = trimmed.dropFirst(fenceLength)
         return remainder.trimmingCharacters(in: .whitespaces).isEmpty
+    }
+
+    private static func htmlBlockStart(for line: String) -> String? {
+        let trimmed = line.trimmingCharacters(in: .whitespaces)
+        guard trimmed.first == "<",
+              !trimmed.hasPrefix("</"),
+              !trimmed.hasPrefix("<!--"),
+              let match = trimmed.range(of: #"^<([A-Za-z][A-Za-z0-9:-]*)\b[^>]*?>$"#, options: .regularExpression) else {
+            return nil
+        }
+
+        let token = String(trimmed[match])
+        guard !token.hasSuffix("/>"),
+              let tagMatch = token.range(of: #"^<([A-Za-z][A-Za-z0-9:-]*)"#, options: .regularExpression) else {
+            return nil
+        }
+
+        return String(token[tagMatch]).dropFirst().lowercased()
+    }
+
+    private static func isClosingHTMLBlock(_ line: String, tagName: String) -> Bool {
+        let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        return trimmed == "</\(tagName)>"
     }
 
     private static func isTableSeparatorLine(_ line: String, expectedColumnCount: Int) -> Bool {
