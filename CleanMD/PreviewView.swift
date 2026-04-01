@@ -77,6 +77,8 @@ struct PreviewView: NSViewRepresentable {
         let allowedLinkSchemesJSON = PreviewURLPolicy.allowedSchemesJSON(for: .link)
         let allowedImageSchemesJSON = PreviewURLPolicy.allowedSchemesJSON(for: .image)
         let localFileScheme = PreviewURLPolicy.localFileScheme
+        let sharedRendererSource = sharedRendererJavaScript()
+        let sharedRendererSourceLiteral = String(reflecting: sharedRendererSource)
 
         return """
         <!DOCTYPE html>
@@ -223,164 +225,7 @@ struct PreviewView: NSViewRepresentable {
         var allowedImageSchemes = \(allowedImageSchemesJSON);
         var localFileScheme = \(String(reflecting: localFileScheme));
         var cleanMDDocumentBaseURL = null;
-
-        function escapeHtml(raw) {
-            return String(raw).replace(/[&<>"']/g, function(ch) {
-                switch (ch) {
-                    case '&': return '&amp;';
-                    case '<': return '&lt;';
-                    case '>': return '&gt;';
-                    case '"': return '&quot;';
-                    case "'": return '&#39;';
-                    default:  return ch;
-                }
-            });
-        }
-
-        function escapeAttribute(raw) {
-            return escapeHtml(raw);
-        }
-
-        function resolveSanitizedURL(rawValue, allowedSchemes) {
-            var value = String(rawValue || '').trim();
-            if (!value) return '';
-            if (value[0] === '#') return value;
-
-            var resolved = value;
-            if (!/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(resolved)) {
-                if (!cleanMDDocumentBaseURL) return '';
-                try {
-                    resolved = new URL(resolved, cleanMDDocumentBaseURL).href;
-                } catch (e) {
-                    return '';
-                }
-            }
-
-            var schemeIndex = resolved.indexOf(':');
-            if (schemeIndex <= 0) return '';
-            var scheme = resolved.slice(0, schemeIndex).toLowerCase();
-            return allowedSchemes.indexOf(scheme) !== -1 ? resolved : '';
-        }
-
-        function rewriteLocalFileURL(resolvedURL) {
-            if (typeof resolvedURL !== 'string' || resolvedURL.indexOf('file://') !== 0) return resolvedURL;
-            return localFileScheme + '://' + resolvedURL.slice('file://'.length);
-        }
-
-        function sanitizeLinkHref(rawHref) {
-            return rewriteLocalFileURL(resolveSanitizedURL(rawHref, allowedLinkSchemes));
-        }
-
-        function sanitizeImageSrc(rawSrc) {
-            return rewriteLocalFileURL(resolveSanitizedURL(rawSrc, allowedImageSchemes));
-        }
-
-        function normalizeLanguage(rawLang) {
-            var lang = String(rawLang || '').trim();
-            if (!lang) return '';
-            return lang.split(/\\s+/)[0].toLowerCase();
-        }
-
-        function hashString(input) {
-            var hash = 2166136261;
-            for (var i = 0; i < input.length; i++) {
-                hash ^= input.charCodeAt(i);
-                hash = Math.imul(hash, 16777619);
-            }
-            return hash >>> 0;
-        }
-
-        function cacheSet(cache, key, value, maxEntries) {
-            if (cache.has(key)) cache.delete(key);
-            cache.set(key, value);
-            if (cache.size > maxEntries) {
-                var oldestKey = cache.keys().next().value;
-                cache.delete(oldestKey);
-            }
-        }
-
-        function highlightCodeCached(code, lang, cache, maxEntries) {
-            var key = lang + '|' + code.length + '|' + hashString(code);
-            if (cache.has(key)) return cache.get(key);
-
-            var highlighted;
-            if (lang && hljs.getLanguage(lang)) {
-                highlighted = hljs.highlight(code, { language: lang, ignoreIllegals: true }).value;
-            } else {
-                highlighted = hljs.highlightAuto(code).value;
-            }
-            cacheSet(cache, key, highlighted, maxEntries);
-            return highlighted;
-        }
-
-        function buildMarkedOptions(cache, maxEntries) {
-            return {
-                gfm: true,
-                breaks: true,
-                renderer: {
-                    html: function(token) {
-                        var raw = '';
-                        if (typeof token === 'string') {
-                            raw = token;
-                        } else if (token && typeof token === 'object') {
-                            raw = token.raw || token.text || '';
-                        }
-                        // Do not execute raw HTML embedded in markdown.
-                        return escapeHtml(raw);
-                    },
-                    link: function(token) {
-                        var href = sanitizeLinkHref(token && token.href);
-                        var text = '';
-                        if (this.parser && token && Array.isArray(token.tokens)) {
-                            text = this.parser.parseInline(token.tokens);
-                        } else {
-                            text = escapeHtml(token && token.text ? token.text : '');
-                        }
-                        if (!href) return text;
-                        var title = token && token.title ? ' title="' + escapeAttribute(token.title) + '"' : '';
-                        return '<a href="' + escapeAttribute(href) + '"' + title + '>' + text + '</a>';
-                    },
-                    image: function(token) {
-                        var src = sanitizeImageSrc(token && token.href);
-                        var alt = escapeAttribute(token && token.text ? token.text : '');
-                        if (!src) return alt;
-                        var title = token && token.title ? ' title="' + escapeAttribute(token.title) + '"' : '';
-                        return '<img src="' + escapeAttribute(src) + '" alt="' + alt + '"' + title + '>';
-                    },
-                    code: function(token) {
-                        var code = String(token && token.text ? token.text : '');
-                        var lang = normalizeLanguage(token && token.lang);
-                        var highlighted = highlightCodeCached(code, lang, cache, maxEntries);
-                        var className = 'hljs' + (lang ? (' language-' + lang) : '');
-                        return '<pre><code class="' + className + '">' + highlighted + '</code></pre>\\n';
-                    }
-                }
-            };
-        }
-
-        function renderCodePreviewHtml(language, text, cache, maxEntries) {
-            var code = String(text || '');
-            var lang = normalizeLanguage(language);
-            var highlighted = highlightCodeCached(code, lang, cache, maxEntries);
-            var className = 'hljs' + (lang ? (' language-' + lang) : '');
-            document.body.classList.add('code-preview');
-            return '<pre><code class="' + className + '">' + highlighted + '</code></pre>\\n';
-        }
-
-        function renderMarkdownPreviewHtml(text) {
-            document.body.classList.remove('code-preview');
-            var html = marked.parse(text);
-            return html;
-        }
-
-        function renderPreviewHtml(mode, text, cache, maxEntries) {
-            var normalizedMode = String(mode || 'markdown');
-            if (normalizedMode.indexOf('code:') === 0) {
-                var language = normalizedMode.slice(5);
-                return renderCodePreviewHtml(language, text, cache, maxEntries);
-            }
-            return renderMarkdownPreviewHtml(text);
-        }
+        \(sharedRendererSource)
 
         function hasSupportedMathDelimiters(text) {
             return text.indexOf('$$') !== -1 ||
@@ -423,159 +268,7 @@ struct PreviewView: NSViewRepresentable {
                 var allowedImageSchemes = ${JSON.stringify(allowedImageSchemes)};
                 var localFileScheme = ${JSON.stringify(localFileScheme)};
                 var cleanMDDocumentBaseURL = null;
-                
-                function escapeHtml(raw) {
-                    return String(raw).replace(/[&<>"']/g, function(ch) {
-                        switch (ch) {
-                            case '&': return '&amp;';
-                            case '<': return '&lt;';
-                            case '>': return '&gt;';
-                            case '"': return '&quot;';
-                            case "'": return '&#39;';
-                            default:  return ch;
-                        }
-                    });
-                }
-
-                function escapeAttribute(raw) {
-                    return escapeHtml(raw);
-                }
-                
-                function resolveSanitizedURL(rawValue, allowedSchemes) {
-                    var value = String(rawValue || '').trim();
-                    if (!value) return '';
-                    if (value[0] === '#') return value;
-
-                    var resolved = value;
-                    if (!/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(resolved)) {
-                        if (!cleanMDDocumentBaseURL) return '';
-                        try {
-                            resolved = new URL(resolved, cleanMDDocumentBaseURL).href;
-                        } catch (e) {
-                            return '';
-                        }
-                    }
-
-                    var schemeIndex = resolved.indexOf(':');
-                    if (schemeIndex <= 0) return '';
-                    var scheme = resolved.slice(0, schemeIndex).toLowerCase();
-                    return allowedSchemes.indexOf(scheme) !== -1 ? resolved : '';
-                }
-
-                function rewriteLocalFileURL(resolvedURL) {
-                    if (typeof resolvedURL !== 'string' || resolvedURL.indexOf('file://') !== 0) return resolvedURL;
-                    return localFileScheme + '://' + resolvedURL.slice('file://'.length);
-                }
-
-                function sanitizeLinkHref(rawHref) {
-                    return rewriteLocalFileURL(resolveSanitizedURL(rawHref, allowedLinkSchemes));
-                }
-
-                function sanitizeImageSrc(rawSrc) {
-                    return rewriteLocalFileURL(resolveSanitizedURL(rawSrc, allowedImageSchemes));
-                }
-                
-                function normalizeLanguage(rawLang) {
-                    var lang = String(rawLang || '').trim();
-                    if (!lang) return '';
-                    return lang.split(/\\s+/)[0].toLowerCase();
-                }
-                
-                function hashString(input) {
-                    var hash = 2166136261;
-                    for (var i = 0; i < input.length; i++) {
-                        hash ^= input.charCodeAt(i);
-                        hash = Math.imul(hash, 16777619);
-                    }
-                    return hash >>> 0;
-                }
-                
-                function cacheSet(cache, key, value, maxEntries) {
-                    if (cache.has(key)) cache.delete(key);
-                    cache.set(key, value);
-                    if (cache.size > maxEntries) {
-                        var oldestKey = cache.keys().next().value;
-                        cache.delete(oldestKey);
-                    }
-                }
-                
-                function highlightCodeCached(code, lang, cache, maxEntries) {
-                    var key = lang + '|' + code.length + '|' + hashString(code);
-                    if (cache.has(key)) return cache.get(key);
-                    var highlighted;
-                    if (lang && hljs.getLanguage(lang)) {
-                        highlighted = hljs.highlight(code, { language: lang, ignoreIllegals: true }).value;
-                    } else {
-                        highlighted = hljs.highlightAuto(code).value;
-                    }
-                    cacheSet(cache, key, highlighted, maxEntries);
-                    return highlighted;
-                }
-                
-                function buildMarkedOptions(cache, maxEntries) {
-                    return {
-                        gfm: true,
-                        breaks: true,
-                        renderer: {
-                            html: function(token) {
-                                var raw = '';
-                                if (typeof token === 'string') {
-                                    raw = token;
-                                } else if (token && typeof token === 'object') {
-                                    raw = token.raw || token.text || '';
-                                }
-                                return escapeHtml(raw);
-                            },
-                            link: function(token) {
-                                var href = sanitizeLinkHref(token && token.href);
-                                var text = '';
-                                if (this.parser && token && Array.isArray(token.tokens)) {
-                                    text = this.parser.parseInline(token.tokens);
-                                } else {
-                                    text = escapeHtml(token && token.text ? token.text : '');
-                                }
-                                if (!href) return text;
-                                var title = token && token.title ? ' title="' + escapeAttribute(token.title) + '"' : '';
-                                return '<a href="' + escapeAttribute(href) + '"' + title + '>' + text + '</a>';
-                            },
-                            image: function(token) {
-                                var src = sanitizeImageSrc(token && token.href);
-                                var alt = escapeAttribute(token && token.text ? token.text : '');
-                                if (!src) return alt;
-                                var title = token && token.title ? ' title="' + escapeAttribute(token.title) + '"' : '';
-                                return '<img src="' + escapeAttribute(src) + '" alt="' + alt + '"' + title + '>';
-                            },
-                            code: function(token) {
-                                var code = String(token && token.text ? token.text : '');
-                                var lang = normalizeLanguage(token && token.lang);
-                                var highlighted = highlightCodeCached(code, lang, cache, maxEntries);
-                                var className = 'hljs' + (lang ? (' language-' + lang) : '');
-                                return '<pre><code class="' + className + '">' + highlighted + '</code></pre>\\n';
-                            }
-                        }
-                    };
-                }
-
-                function renderCodePreviewHtml(language, text, cache, maxEntries) {
-                    var code = String(text || '');
-                    var lang = normalizeLanguage(language);
-                    var highlighted = highlightCodeCached(code, lang, cache, maxEntries);
-                    var className = 'hljs' + (lang ? (' language-' + lang) : '');
-                    return '<pre><code class="' + className + '">' + highlighted + '</code></pre>\\n';
-                }
-
-                function renderMarkdownPreviewHtml(text) {
-                    return marked.parse(text);
-                }
-
-                function renderPreviewHtml(mode, text, cache, maxEntries) {
-                    var normalizedMode = String(mode || 'markdown');
-                    if (normalizedMode.indexOf('code:') === 0) {
-                        var language = normalizedMode.slice(5);
-                        return renderCodePreviewHtml(language, text, cache, maxEntries);
-                    }
-                    return renderMarkdownPreviewHtml(text);
-                }
+                ${\(sharedRendererSourceLiteral)}
                 
                 var highlightCache = new Map();
                 marked.use(buildMarkedOptions(highlightCache, 400));
@@ -742,6 +435,171 @@ struct PreviewView: NSViewRepresentable {
 
     private static func assetURLString(resourceURL: URL?, fileName: String) -> String {
         resourceURL?.appendingPathComponent(fileName).absoluteString ?? fileName
+    }
+
+    private static func sharedRendererJavaScript() -> String {
+        """
+        function escapeHtml(raw) {
+            return String(raw).replace(/[&<>"']/g, function(ch) {
+                switch (ch) {
+                    case '&': return '&amp;';
+                    case '<': return '&lt;';
+                    case '>': return '&gt;';
+                    case '"': return '&quot;';
+                    case "'": return '&#39;';
+                    default:  return ch;
+                }
+            });
+        }
+
+        function escapeAttribute(raw) {
+            return escapeHtml(raw);
+        }
+
+        function resolveSanitizedURL(rawValue, allowedSchemes) {
+            var value = String(rawValue || '').trim();
+            if (!value) return '';
+            if (value[0] === '#') return value;
+
+            var resolved = value;
+            if (!/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(resolved)) {
+                if (!cleanMDDocumentBaseURL) return '';
+                try {
+                    resolved = new URL(resolved, cleanMDDocumentBaseURL).href;
+                } catch (e) {
+                    return '';
+                }
+            }
+
+            var schemeIndex = resolved.indexOf(':');
+            if (schemeIndex <= 0) return '';
+            var scheme = resolved.slice(0, schemeIndex).toLowerCase();
+            return allowedSchemes.indexOf(scheme) !== -1 ? resolved : '';
+        }
+
+        function rewriteLocalFileURL(resolvedURL) {
+            if (typeof resolvedURL !== 'string' || resolvedURL.indexOf('file://') !== 0) return resolvedURL;
+            return localFileScheme + '://' + resolvedURL.slice('file://'.length);
+        }
+
+        function sanitizeLinkHref(rawHref) {
+            return rewriteLocalFileURL(resolveSanitizedURL(rawHref, allowedLinkSchemes));
+        }
+
+        function sanitizeImageSrc(rawSrc) {
+            return rewriteLocalFileURL(resolveSanitizedURL(rawSrc, allowedImageSchemes));
+        }
+
+        function normalizeLanguage(rawLang) {
+            var lang = String(rawLang || '').trim();
+            if (!lang) return '';
+            return lang.split(/\\s+/)[0].toLowerCase();
+        }
+
+        function hashString(input) {
+            var hash = 2166136261;
+            for (var i = 0; i < input.length; i++) {
+                hash ^= input.charCodeAt(i);
+                hash = Math.imul(hash, 16777619);
+            }
+            return hash >>> 0;
+        }
+
+        function cacheSet(cache, key, value, maxEntries) {
+            if (cache.has(key)) cache.delete(key);
+            cache.set(key, value);
+            if (cache.size > maxEntries) {
+                var oldestKey = cache.keys().next().value;
+                cache.delete(oldestKey);
+            }
+        }
+
+        function highlightCodeCached(code, lang, cache, maxEntries) {
+            var key = lang + '|' + code.length + '|' + hashString(code);
+            if (cache.has(key)) return cache.get(key);
+
+            var highlighted;
+            if (lang && hljs.getLanguage(lang)) {
+                highlighted = hljs.highlight(code, { language: lang, ignoreIllegals: true }).value;
+            } else {
+                highlighted = hljs.highlightAuto(code).value;
+            }
+            cacheSet(cache, key, highlighted, maxEntries);
+            return highlighted;
+        }
+
+        function buildMarkedOptions(cache, maxEntries) {
+            return {
+                gfm: true,
+                breaks: true,
+                renderer: {
+                    html: function(token) {
+                        var raw = '';
+                        if (typeof token === 'string') {
+                            raw = token;
+                        } else if (token && typeof token === 'object') {
+                            raw = token.raw || token.text || '';
+                        }
+                        return escapeHtml(raw);
+                    },
+                    link: function(token) {
+                        var href = sanitizeLinkHref(token && token.href);
+                        var text = '';
+                        if (this.parser && token && Array.isArray(token.tokens)) {
+                            text = this.parser.parseInline(token.tokens);
+                        } else {
+                            text = escapeHtml(token && token.text ? token.text : '');
+                        }
+                        if (!href) return text;
+                        var title = token && token.title ? ' title="' + escapeAttribute(token.title) + '"' : '';
+                        return '<a href="' + escapeAttribute(href) + '"' + title + '>' + text + '</a>';
+                    },
+                    image: function(token) {
+                        var src = sanitizeImageSrc(token && token.href);
+                        var alt = escapeAttribute(token && token.text ? token.text : '');
+                        if (!src) return alt;
+                        var title = token && token.title ? ' title="' + escapeAttribute(token.title) + '"' : '';
+                        return '<img src="' + escapeAttribute(src) + '" alt="' + alt + '"' + title + '>';
+                    },
+                    code: function(token) {
+                        var code = String(token && token.text ? token.text : '');
+                        var lang = normalizeLanguage(token && token.lang);
+                        var highlighted = highlightCodeCached(code, lang, cache, maxEntries);
+                        var className = 'hljs' + (lang ? (' language-' + lang) : '');
+                        return '<pre><code class="' + className + '">' + highlighted + '</code></pre>\\n';
+                    }
+                }
+            };
+        }
+
+        function setCodePreviewClass(enabled) {
+            if (typeof document === 'undefined' || !document.body) return;
+            document.body.classList.toggle('code-preview', !!enabled);
+        }
+
+        function renderCodePreviewHtml(language, text, cache, maxEntries) {
+            var code = String(text || '');
+            var lang = normalizeLanguage(language);
+            var highlighted = highlightCodeCached(code, lang, cache, maxEntries);
+            var className = 'hljs' + (lang ? (' language-' + lang) : '');
+            setCodePreviewClass(true);
+            return '<pre><code class="' + className + '">' + highlighted + '</code></pre>\\n';
+        }
+
+        function renderMarkdownPreviewHtml(text) {
+            setCodePreviewClass(false);
+            return marked.parse(text);
+        }
+
+        function renderPreviewHtml(mode, text, cache, maxEntries) {
+            var normalizedMode = String(mode || 'markdown');
+            if (normalizedMode.indexOf('code:') === 0) {
+                var language = normalizedMode.slice(5);
+                return renderCodePreviewHtml(language, text, cache, maxEntries);
+            }
+            return renderMarkdownPreviewHtml(text);
+        }
+        """
     }
 
     // MARK: - Coordinator
