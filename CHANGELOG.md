@@ -4,10 +4,25 @@ All notable project updates are tracked here.
 
 ## Unreleased
 
+## v0.9.0 — 2026-04-01
+
 ### Added
 
-- `scripts/release.sh` to run the validated GitHub release flow end-to-end from reviewed metadata.
 - GitHub Actions CI workflow for package tests, smoke tests, and app bundle builds on macOS.
+- Release automation scripts for preparing metadata, packaging builds, and publishing reviewed releases.
+
+### Improved
+
+- Appearance editing now uses a docked inspector with faster Figma-like color controls and inline HEX editing.
+- New windows now cascade instead of opening directly on top of each other.
+- Scroll sync now starts enabled by default for side-by-side editing.
+
+### Fixed
+
+- Preview now opens local markdown links and renders local images more reliably, including spaced file names.
+- Markdown preview preserves fenced code blocks while still repairing broken table rows in real documents.
+- Restore Defaults now resets heading divider toggles as well as palette colors.
+- CI cache setup now matches the local SwiftPM cache strategy.
 
 ## v0.8.0 — 2026-03-19
 
