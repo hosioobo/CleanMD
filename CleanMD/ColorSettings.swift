@@ -42,18 +42,28 @@ struct ColorPalette: Codable, Equatable {
 final class ColorSettings: ObservableObject {
     static let shared = ColorSettings()
 
-    @Published var lightPalette: ColorPalette = .init()        { didSet { persist(); version += 1 } }
-    @Published var darkPalette:  ColorPalette = .darkDefault   { didSet { persist(); version += 1 } }
-    @Published var showH1Divider: Bool = true                  { didSet { persist(); version += 1 } }
-    @Published var showH2Divider: Bool = true                  { didSet { persist(); version += 1 } }
-    /// Increments whenever either palette changes. Pass as a param to
-    /// EditorView/PreviewView so their updateNSView fires on color changes.
-    @Published var version: Int = 0
+    @Published var lightPalette: ColorPalette = .init()        { didSet { schedulePersist() } }
+    @Published var darkPalette:  ColorPalette = .darkDefault   { didSet { schedulePersist() } }
+    @Published var showH1Divider: Bool = true                  { didSet { schedulePersist() } }
+    @Published var showH2Divider: Bool = true                  { didSet { schedulePersist() } }
 
     func palette(isDark: Bool) -> ColorPalette { isDark ? darkPalette : lightPalette }
 
-    init(defaults: UserDefaults = .standard) {
+    private let defaults: UserDefaults
+    private let notificationCenter: NotificationCenter
+    private var pendingPersistWorkItem: DispatchWorkItem?
+    private var terminationObserver: NSObjectProtocol?
+    private let persistDelay: TimeInterval
+
+    init(
+        defaults: UserDefaults = .standard,
+        persistDelay: TimeInterval = 0.12,
+        notificationCenter: NotificationCenter = .default,
+        observeTermination: Bool = true
+    ) {
         self.defaults = defaults
+        self.persistDelay = persistDelay
+        self.notificationCenter = notificationCenter
 
         func load<T: Decodable>(_ key: String) -> T? {
             guard let s = defaults.string(forKey: key),
@@ -69,15 +79,38 @@ final class ColorSettings: ObservableObject {
         if defaults.object(forKey: "cp_show_h2_divider") != nil {
             showH2Divider = defaults.bool(forKey: "cp_show_h2_divider")
         }
-    }
 
-    private let defaults: UserDefaults
+        if observeTermination {
+            terminationObserver = notificationCenter.addObserver(
+                forName: NSApplication.willTerminateNotification,
+                object: nil,
+                queue: .main
+            ) { [weak self] _ in
+                self?.flushPendingPersist()
+            }
+        }
+    }
 
     func restoreDefaults() {
         lightPalette = .lightDefault
         darkPalette = .darkDefault
         showH1Divider = true
         showH2Divider = true
+    }
+
+    func flushPendingPersist() {
+        pendingPersistWorkItem?.cancel()
+        pendingPersistWorkItem = nil
+        persist()
+    }
+
+    private func schedulePersist() {
+        pendingPersistWorkItem?.cancel()
+        let workItem = DispatchWorkItem { [weak self] in
+            self?.persist()
+        }
+        pendingPersistWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + persistDelay, execute: workItem)
     }
 
     private func persist() {
@@ -90,6 +123,13 @@ final class ColorSettings: ObservableObject {
         store(darkPalette,  key: "cp_v2_dark")
         defaults.set(showH1Divider, forKey: "cp_show_h1_divider")
         defaults.set(showH2Divider, forKey: "cp_show_h2_divider")
+    }
+
+    deinit {
+        flushPendingPersist()
+        if let terminationObserver {
+            notificationCenter.removeObserver(terminationObserver)
+        }
     }
 }
 

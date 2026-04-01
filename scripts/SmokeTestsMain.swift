@@ -242,6 +242,28 @@ func testColorHexNormalization() throws {
     try expect(ColorHex.normalize("#12345") == nil, "invalid hex should be rejected")
 }
 
+func testColorSettingsFlushPendingPersist() throws {
+    let suiteName = "ColorSettingsSmoke.\(UUID().uuidString)"
+    guard let defaults = UserDefaults(suiteName: suiteName) else {
+        throw SmokeTestFailure(message: "Failed to create isolated defaults suite")
+    }
+    defer { defaults.removePersistentDomain(forName: suiteName) }
+
+    let settings = ColorSettings(
+        defaults: defaults,
+        persistDelay: 60,
+        notificationCenter: .init(),
+        observeTermination: false
+    )
+    settings.lightPalette.editorBg = "#123456"
+
+    try expect(defaults.string(forKey: "cp_v2_light") == nil, "debounced color settings should not persist immediately")
+
+    settings.flushPendingPersist()
+
+    try expect(defaults.string(forKey: "cp_v2_light") != nil, "flushPendingPersist should write pending palette changes")
+}
+
 func testScrollSyncControllerStartsLinked() throws {
     let controller = ScrollSyncController()
     try expect(controller.isLinked, "scroll sync should start linked by default")
@@ -275,6 +297,7 @@ enum SmokeTestsMain {
             ("PreviewURLPolicyDetectsPNGDataWithoutExtension", testPreviewURLPolicyDetectsPNGDataWithoutExtension),
             ("WindowFramePolicyCascadesAdditionalWindows", testWindowFramePolicyCascadesAdditionalWindows),
             ("ColorHexNormalization", testColorHexNormalization),
+            ("ColorSettingsFlushPendingPersist", testColorSettingsFlushPendingPersist),
             ("ScrollSyncControllerStartsLinked", testScrollSyncControllerStartsLinked),
             ("ScrollSyncControllerSyncsPreviewByDefault", testScrollSyncControllerSyncsPreviewByDefault)
         ]
