@@ -299,6 +299,26 @@ struct ColorSettingsPanel: View {
 
     private var footer: some View {
         HStack {
+            Picker(
+                "Theme",
+                selection: Binding(
+                    get: { cs.currentPreset },
+                    set: { cs.applyPreset($0) }
+                )
+            ) {
+                ForEach(AppearanceThemePreset.selectableCases) { preset in
+                    Text(preset.title).tag(preset)
+                }
+                if cs.currentPreset == .custom {
+                    Text(AppearanceThemePreset.custom.title).tag(AppearanceThemePreset.custom)
+                }
+            }
+            .pickerStyle(.menu)
+            .labelsHidden()
+            .frame(width: 120, alignment: .leading)
+            .help("Choose appearance theme preset")
+            .accessibilityLabel("Appearance Theme")
+
             Spacer()
             Button("Restore Defaults") {
                 withAnimation(.easeInOut(duration: 0.15)) {
@@ -306,6 +326,8 @@ struct ColorSettingsPanel: View {
                 }
             }
             .controlSize(.small)
+            .help("Restore default appearance colors")
+            .accessibilityLabel("Restore Default Appearance Colors")
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 8)

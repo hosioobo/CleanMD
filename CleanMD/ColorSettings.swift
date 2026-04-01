@@ -35,6 +35,103 @@ struct ColorPalette: Codable, Equatable {
         quoteBorder:  "#3d444d",
         link:         "#79c0ff"
     )
+
+    static let paperLight = ColorPalette(
+        editorBg:     "#f6f0e2",
+        editorText:   "#4d3b2a",
+        previewBg:    "#fbf4e6",
+        previewText:  "#4d3b2a",
+        h1:           "#3f2f21",
+        h2:           "#4d3b2a",
+        h3:           "#5b4633",
+        inlineCodeBg: "#eadfcb",
+        inlineCodeFg: "#4d3b2a",
+        codeBlockBg:  "#efe5d3",
+        quoteText:    "#6a5644",
+        quoteBorder:  "#c8b79a",
+        link:         "#8b5e34"
+    )
+
+    static let paperDark = ColorPalette(
+        editorBg:     "#2d241d",
+        editorText:   "#e8dcc7",
+        previewBg:    "#241d18",
+        previewText:  "#e8dcc7",
+        h1:           "#f3e8d3",
+        h2:           "#eadfc9",
+        h3:           "#d8c6aa",
+        inlineCodeBg: "#3a3028",
+        inlineCodeFg: "#f1e6d2",
+        codeBlockBg:  "#332a23",
+        quoteText:    "#c8b79d",
+        quoteBorder:  "#6c5a49",
+        link:         "#d8a36d"
+    )
+
+    static let coolLight = ColorPalette(
+        editorBg:     "#f3f7fb",
+        editorText:   "#1f3347",
+        previewBg:    "#f7fbff",
+        previewText:  "#20384c",
+        h1:           "#173247",
+        h2:           "#234761",
+        h3:           "#2f5975",
+        inlineCodeBg: "#dfeaf4",
+        inlineCodeFg: "#20415a",
+        codeBlockBg:  "#e6eff7",
+        quoteText:    "#536b7d",
+        quoteBorder:  "#b6cad9",
+        link:         "#0d6efd"
+    )
+
+    static let coolDark = ColorPalette(
+        editorBg:     "#131c26",
+        editorText:   "#d9e7f3",
+        previewBg:    "#0f1720",
+        previewText:  "#dce9f4",
+        h1:           "#f3f8fc",
+        h2:           "#d7e7f5",
+        h3:           "#b8d0e4",
+        inlineCodeBg: "#22303d",
+        inlineCodeFg: "#dceaf7",
+        codeBlockBg:  "#1b2732",
+        quoteText:    "#a7bfd2",
+        quoteBorder:  "#395062",
+        link:         "#7cc4ff"
+    )
+}
+
+enum AppearanceThemePreset: String, CaseIterable, Identifiable {
+    case `default`
+    case paper
+    case cool
+    case custom
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .default: return "Default"
+        case .paper: return "Paper"
+        case .cool: return "Cool"
+        case .custom: return "Custom"
+        }
+    }
+
+    var palettes: (light: ColorPalette, dark: ColorPalette)? {
+        switch self {
+        case .default:
+            return (.lightDefault, .darkDefault)
+        case .paper:
+            return (.paperLight, .paperDark)
+        case .cool:
+            return (.coolLight, .coolDark)
+        case .custom:
+            return nil
+        }
+    }
+
+    static let selectableCases: [AppearanceThemePreset] = [.default, .paper, .cool]
 }
 
 // MARK: - ColorSettings (singleton)
@@ -48,6 +145,16 @@ final class ColorSettings: ObservableObject {
     @Published var showH2Divider: Bool = true                  { didSet { schedulePersist() } }
 
     func palette(isDark: Bool) -> ColorPalette { isDark ? darkPalette : lightPalette }
+
+    var currentPreset: AppearanceThemePreset {
+        for preset in AppearanceThemePreset.selectableCases {
+            guard let palettes = preset.palettes else { continue }
+            if lightPalette == palettes.light && darkPalette == palettes.dark {
+                return preset
+            }
+        }
+        return .custom
+    }
 
     private let defaults: UserDefaults
     private let notificationCenter: NotificationCenter
@@ -96,6 +203,12 @@ final class ColorSettings: ObservableObject {
         darkPalette = .darkDefault
         showH1Divider = true
         showH2Divider = true
+    }
+
+    func applyPreset(_ preset: AppearanceThemePreset) {
+        guard let palettes = preset.palettes else { return }
+        lightPalette = palettes.light
+        darkPalette = palettes.dark
     }
 
     func flushPendingPersist() {
