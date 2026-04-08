@@ -366,6 +366,40 @@ func testScrollSyncControllerSyncsPreviewByDefault() throws {
     try expect(abs(syncedFractions[0] - 0.42) < 0.0001, "forwarded preview fraction should match editor fraction")
 }
 
+func testWebsiteLandingPageIncludesDownloadTrustAndFeedback() throws {
+    let indexHTML = try String(
+        contentsOf: URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+            .appendingPathComponent("docs/index.html"),
+        encoding: .utf8
+    )
+
+    try expect(indexHTML.contains("id=\"primary-download\""), "landing page should expose a primary download CTA")
+    try expect(indexHTML.contains("href=\"./download/?ref=hero\""), "landing page should route the hero CTA through the tracked download path")
+    try expect(indexHTML.contains("id=\"install-trust\""), "landing page should include an install trust section")
+    try expect(indexHTML.contains("not notarized yet"), "landing page should explain the current notarization status")
+    try expect(indexHTML.contains("href=\"https://github.com/hosioobo/CleanMD/issues/new"), "landing page should expose a support or feedback path")
+    try expect(indexHTML.contains("data-site-event=\"page_view\""), "landing page should include a page-view analytics marker")
+}
+
+func testWebsiteDownloadRouteLooksUpLatestReleaseAndTracksReferrer() throws {
+    let repoRoot = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+    let downloadHTML = try String(
+        contentsOf: repoRoot.appendingPathComponent("docs/download/index.html"),
+        encoding: .utf8
+    )
+    let siteJS = try String(
+        contentsOf: repoRoot.appendingPathComponent("docs/site.js"),
+        encoding: .utf8
+    )
+
+    try expect(downloadHTML.contains("data-page-kind=\"download\""), "download page should identify itself for redirect logic")
+    try expect(downloadHTML.contains("data-release-api=\"https://api.github.com/repos/hosioobo/CleanMD/releases/latest\""), "download page should look up the latest GitHub release at runtime")
+    try expect(downloadHTML.contains("data-release-fallback=\"https://github.com/hosioobo/CleanMD/releases/latest\""), "download page should have a release-page fallback URL")
+    try expect(siteJS.contains("browser_download_url"), "download logic should redirect to the release asset, not just the release page")
+    try expect(siteJS.contains("api.countapi.xyz"), "site scripts should send lightweight analytics events")
+    try expect(siteJS.contains("searchParams.get(\"ref\")"), "download logic should attribute traffic sources from the ref query parameter")
+}
+
 @main
 enum SmokeTestsMain {
     static func main() throws {
@@ -390,7 +424,9 @@ enum SmokeTestsMain {
             ("ColorSettingsPresetApplyAndDetection", testColorSettingsPresetApplyAndDetection),
             ("AppearanceInspectorLayoutClamp", testAppearanceInspectorLayoutClamp),
             ("ScrollSyncControllerStartsLinked", testScrollSyncControllerStartsLinked),
-            ("ScrollSyncControllerSyncsPreviewByDefault", testScrollSyncControllerSyncsPreviewByDefault)
+            ("ScrollSyncControllerSyncsPreviewByDefault", testScrollSyncControllerSyncsPreviewByDefault),
+            ("WebsiteLandingPageIncludesDownloadTrustAndFeedback", testWebsiteLandingPageIncludesDownloadTrustAndFeedback),
+            ("WebsiteDownloadRouteLooksUpLatestReleaseAndTracksReferrer", testWebsiteDownloadRouteLooksUpLatestReleaseAndTracksReferrer)
         ]
 
         for (name, test) in tests {

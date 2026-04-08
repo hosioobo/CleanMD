@@ -4,6 +4,16 @@ The lightest, fastest, cleanest native macOS Markdown editor.
 
 CleanMD is a native macOS Markdown editor focused on speed, simplicity, and a clean split-view writing experience. It pairs a plain text editor with a live preview, supports code highlighting and math rendering, and works fully offline with bundled rendering assets.
 
+## Website
+
+The public website lives in `docs/` and is intended for GitHub Pages:
+
+- Overview page: `https://hosioobo.github.io/CleanMD/`
+- Tracked download route: `https://hosioobo.github.io/CleanMD/download/`
+- GitHub Releases fallback: `https://github.com/hosioobo/CleanMD/releases/latest`
+
+The tracked `/download/` page resolves the newest GitHub release asset at runtime, so the primary CTA can stay stable while release zip names remain versioned.
+
 ## Features
 
 - Native macOS app built with SwiftUI and AppKit
@@ -47,13 +57,15 @@ Recommended captures:
 
 ## Download
 
-Regular users can download packaged builds from the GitHub Releases page:
+Regular users should start with the website and primary tracked download path:
 
-- `Releases` on `hosioobo/CleanMD`
+- Website overview: `https://hosioobo.github.io/CleanMD/`
+- Primary download path: `https://hosioobo.github.io/CleanMD/download/`
+- GitHub Releases fallback: `https://github.com/hosioobo/CleanMD/releases/latest`
 
 ### Run the App
 
-1. Download the latest release from GitHub Releases.
+1. Download the latest release from the website or GitHub Releases.
 2. Unzip the downloaded `CleanMD-v*.zip` file.
 3. Move `CleanMD.app` to your Applications folder if desired.
 4. Open `CleanMD.app`.
@@ -73,6 +85,7 @@ This project is built with Swift Package Manager and a shell packaging script â€
 ## Project Structure
 
 - `CleanMD/`: Swift source files and bundled preview assets
+- `docs/`: GitHub Pages website, tracked download route, and lightweight client-side analytics
 - `build.sh`: local packaging script for `CleanMD.app`
 - `Info.plist`: app metadata and document type registration
 - `makeicon.swift`: script used to generate app icon assets
