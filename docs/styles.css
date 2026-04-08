@@ -131,7 +131,7 @@ main,
 
 .hero {
     display: grid;
-    grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.9fr);
+    grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
     gap: 28px;
     padding: 40px;
     overflow: hidden;
@@ -145,7 +145,7 @@ main,
 
 .hero-copy,
 .hero-ledger,
-.showcase-copy,
+.message-card,
 .trust-section,
 .download-main {
     animation: rise-in 700ms ease both;
@@ -260,7 +260,42 @@ h3 {
     font-size: 0.95rem;
 }
 
+.hero-microcopy {
+    margin: 16px 0 0;
+    color: var(--ink-quiet);
+    line-height: 1.5;
+}
+
+.hero-visual-wrap {
+    display: grid;
+    align-content: start;
+    gap: 12px;
+}
+
+.hero-proof {
+    display: block;
+    padding: 16px;
+    border: 1px solid rgba(255, 248, 236, 0.14);
+    background: rgba(255, 248, 236, 0.08);
+}
+
+.hero-proof img {
+    border-radius: var(--radius-lg);
+    border: 1px solid rgba(255, 248, 236, 0.08);
+    box-shadow: 0 22px 44px rgba(0, 0, 0, 0.25);
+}
+
+.hero-visual-note {
+    margin: 0;
+    color: var(--ink-quiet);
+    line-height: 1.55;
+}
+
 .hero-ledger {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
     padding: 26px;
     border: 1px solid rgba(255, 248, 236, 0.12);
     border-radius: 24px;
@@ -273,21 +308,16 @@ h3 {
 }
 
 .ledger-list {
-    display: grid;
-    gap: 14px;
-    margin-top: 20px;
+    display: contents;
 }
 
 .ledger-item {
     display: grid;
     gap: 6px;
-    padding: 16px 0;
-    border-top: 1px solid rgba(255, 248, 236, 0.12);
-}
-
-.ledger-item:first-child {
-    border-top: 0;
-    padding-top: 0;
+    padding: 16px;
+    border: 1px solid rgba(255, 248, 236, 0.1);
+    border-radius: 18px;
+    background: rgba(255, 248, 236, 0.04);
 }
 
 .ledger-item span {
@@ -309,14 +339,13 @@ h3 {
     text-decoration-color: rgba(255, 248, 236, 0.4);
 }
 
-.showcase {
+.message-grid {
     display: grid;
-    grid-template-columns: minmax(300px, 0.9fr) minmax(0, 1.1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 28px;
-    align-items: center;
 }
 
-.showcase-copy,
+.message-card,
 .trust-section,
 .download-main {
     padding: 30px;
@@ -355,41 +384,50 @@ h3 {
     background: var(--emerald);
 }
 
-.showcase-stack {
-    position: relative;
-    min-height: 540px;
+.technical-proof {
+    grid-column: 1 / -1;
+    padding: 30px;
 }
 
-.frame {
-    position: absolute;
-    width: min(100%, 720px);
-    padding: 18px;
+.technical-proof-grid {
+    display: grid;
+    grid-template-columns: minmax(280px, 1fr) minmax(0, 0.85fr);
+    gap: 24px;
+    align-items: center;
 }
 
-.frame img {
+.technical-proof-link {
+    display: block;
+}
+
+.technical-proof-link img {
     border-radius: var(--radius-lg);
-    border: 1px solid rgba(23, 35, 31, 0.1);
+    border: 1px solid rgba(20, 32, 29, 0.08);
     box-shadow: 0 20px 44px rgba(20, 42, 32, 0.16);
 }
 
-.frame figcaption {
-    margin-top: 14px;
+.comparison-section {
+    padding: 30px;
+}
+
+.comparison-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
+    margin-top: 18px;
+}
+
+.comparison-card {
+    padding: 22px;
+    border: 1px solid rgba(20, 32, 29, 0.1);
+    border-radius: var(--radius-lg);
+    background: rgba(255, 251, 243, 0.74);
+}
+
+.comparison-card p {
+    margin: 14px 0 0;
     color: var(--ink-soft);
-    line-height: 1.5;
-}
-
-.frame-primary {
-    top: 0;
-    left: 0;
-    z-index: 2;
-}
-
-.frame-secondary {
-    right: 0;
-    bottom: 0;
-    width: min(86%, 620px);
-    z-index: 1;
-    transform: translateY(24px);
+    line-height: 1.6;
 }
 
 .trust-section {
@@ -436,13 +474,13 @@ h3 {
     color: var(--ink-soft);
 }
 
-.support-band {
+.final-cta {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
     gap: 20px;
-    padding: 8px 4px 0;
+    padding: 30px;
 }
 
 .support-copy {
@@ -505,7 +543,9 @@ h3 {
 
 @media (max-width: 1024px) {
     .hero,
-    .showcase,
+    .message-grid,
+    .technical-proof-grid,
+    .comparison-grid,
     .trust-grid {
         grid-template-columns: 1fr;
     }
@@ -514,17 +554,8 @@ h3 {
         padding: 28px;
     }
 
-    .showcase-stack {
-        min-height: 0;
-        display: grid;
-        gap: 18px;
-    }
-
-    .frame,
-    .frame-secondary {
-        position: static;
-        width: 100%;
-        transform: none;
+    .hero-ledger {
+        grid-template-columns: 1fr;
     }
 }
 
@@ -540,9 +571,12 @@ h3 {
 
     .hero,
     .hero-ledger,
-    .showcase-copy,
+    .message-card,
+    .technical-proof,
+    .comparison-section,
     .trust-section,
-    .download-main {
+    .download-main,
+    .final-cta {
         padding: 22px;
     }
 
@@ -558,7 +592,4 @@ h3 {
         flex-direction: column;
     }
 
-    .support-band {
-        padding-top: 0;
-    }
 }

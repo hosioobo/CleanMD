@@ -1,3 +1,10 @@
+const GTM_EVENTS = {
+    heroDownload: "hero_download_click",
+    screenshotOpen: "screenshot_open",
+    comparisonView: "comparison_section_view",
+    releaseOutbound: "release_outbound_click"
+};
+
 function sanitizeEventKey(value) {
     return (value || "unknown")
         .toLowerCase()
@@ -27,9 +34,34 @@ function trackSiteEvent(kind, label) {
 function bindTrackedLinks() {
     document.querySelectorAll("[data-track-click]").forEach((link) => {
         link.addEventListener("click", () => {
-            trackSiteEvent("click", link.dataset.trackClick || "link");
+            trackSiteEvent(link.dataset.trackClick || "click", link.dataset.trackLabel || "link");
         });
     });
+}
+
+function observeSectionView(sectionId, eventName) {
+    const section = document.getElementById(sectionId);
+    if (!section) {
+        return;
+    }
+
+    if (!("IntersectionObserver" in window)) {
+        trackSiteEvent(eventName, sectionId);
+        return;
+    }
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+                trackSiteEvent(eventName, sectionId);
+                observer.disconnect();
+            }
+        });
+    }, {
+        threshold: 0.35
+    });
+
+    observer.observe(section);
 }
 
 async function resolveLatestReleaseDownload(apiURL, fallbackURL) {
@@ -79,11 +111,13 @@ async function startDownloadRedirect() {
         if (status) {
             status.textContent = "Release found. Redirecting now…";
         }
+        trackSiteEvent(GTM_EVENTS.releaseOutbound, ref);
         window.location.replace(targetURL);
     } catch (error) {
         if (status) {
             status.textContent = "GitHub is slow right now. Opening the release page instead…";
         }
+        trackSiteEvent(GTM_EVENTS.releaseOutbound, "fallback");
         window.location.replace(fallbackURL);
     }
 }
@@ -95,6 +129,8 @@ document.addEventListener("DOMContentLoaded", () => {
     if (body.dataset.siteEvent) {
         trackSiteEvent(body.dataset.siteEvent, body.dataset.sitePage || body.dataset.pageKind || "site");
     }
+
+    observeSectionView("comparison-section", GTM_EVENTS.comparisonView);
 
     if (body.dataset.pageKind === "download") {
         void startDownloadRedirect();

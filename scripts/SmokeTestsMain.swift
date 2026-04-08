@@ -379,6 +379,9 @@ func testWebsiteLandingPageIncludesDownloadTrustAndFeedback() throws {
     try expect(indexHTML.contains("not notarized yet"), "landing page should explain the current notarization status")
     try expect(indexHTML.contains("href=\"https://github.com/hosioobo/CleanMD/issues/new"), "landing page should expose a support or feedback path")
     try expect(indexHTML.contains("data-site-event=\"page_view\""), "landing page should include a page-view analytics marker")
+    try expect(indexHTML.contains("id=\"hero-proof\""), "landing page should put a real product screenshot in the hero")
+    try expect(indexHTML.contains("id=\"comparison-section\""), "landing page should include a comparison section before the final CTA")
+    try expect(indexHTML.contains("data-track-click=\"hero_download_click\""), "hero download CTA should use the named GTM event")
 }
 
 func testWebsiteDownloadRouteLooksUpLatestReleaseAndTracksReferrer() throws {
@@ -398,6 +401,10 @@ func testWebsiteDownloadRouteLooksUpLatestReleaseAndTracksReferrer() throws {
     try expect(siteJS.contains("browser_download_url"), "download logic should redirect to the release asset, not just the release page")
     try expect(siteJS.contains("api.countapi.xyz"), "site scripts should send lightweight analytics events")
     try expect(siteJS.contains("searchParams.get(\"ref\")"), "download logic should attribute traffic sources from the ref query parameter")
+    try expect(siteJS.contains("hero_download_click"), "site scripts should preserve the named hero download event")
+    try expect(siteJS.contains("screenshot_open"), "site scripts should track screenshot-open events")
+    try expect(siteJS.contains("comparison_section_view"), "site scripts should track comparison-section views")
+    try expect(siteJS.contains("release_outbound_click"), "site scripts should track outbound release clicks")
 }
 
 @main

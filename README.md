@@ -1,8 +1,8 @@
 # CleanMD
 
-The lightest, fastest, cleanest native macOS Markdown editor.
+Native macOS Markdown editing for developers who want local files, live preview, and a lighter workflow than a full knowledge base.
 
-CleanMD is a native macOS Markdown editor focused on speed, simplicity, and a clean split-view writing experience. It pairs a plain text editor with a live preview, supports code highlighting and math rendering, and works fully offline with bundled rendering assets.
+CleanMD is a native macOS Markdown editor built for people who already keep Markdown in folders and repos. You edit the source on one side, review the rendered result on the other, and keep code blocks, tables, links, and math easy to verify without cloud lock-in or plugin setup.
 
 ## Website
 
@@ -15,6 +15,8 @@ The public website lives in `docs/` and is intended for GitHub Pages:
 The tracked `/download/` page resolves the newest GitHub release asset at runtime, so the primary CTA can stay stable while release zip names remain versioned.
 
 ## Features
+
+Best for READMEs, specs, release notes, docs, and notes that need to stay as plain files.
 
 - Native macOS app built with SwiftUI and AppKit
 - Three-pane layout with file explorer, editor, and live preview
@@ -56,6 +58,8 @@ Recommended captures:
 - Xcode command line tools for local builds
 
 ## Download
+
+Download the latest GitHub Release if you want the packaged app, or build from source if you prefer a local developer path.
 
 Regular users should start with the website and primary tracked download path:
 
