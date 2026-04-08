@@ -22,11 +22,15 @@
     <div class="page-glow page-glow-b" aria-hidden="true"></div>
 
     <main class="download-main panel">
-        <p class="eyebrow">CleanMD download</p>
-        <h1>Preparing the latest macOS build…</h1>
+        <p class="eyebrow">Official CleanMD download</p>
+        <h1>Preparing the latest GitHub release…</h1>
         <p class="lede" data-download-status>
-            Checking GitHub Releases for the newest packaged zip. If this takes longer than a moment, use the fallback links below.
+            This page keeps the public download button stable while each shipped zip stays versioned inside GitHub Releases.
         </p>
+        <div class="download-details">
+            <p>Release source: `hosioobo/CleanMD`</p>
+            <p>Fallback target: latest GitHub release page</p>
+        </div>
         <div class="hero-actions">
             <a class="button button-primary" href="https://github.com/hosioobo/CleanMD/releases/latest">
                 Open latest release manually
@@ -36,7 +40,7 @@
             </a>
         </div>
         <p class="download-note">
-            This route keeps the public CTA stable while each GitHub release continues to ship a versioned zip asset.
+            If the GitHub API is slow, this route falls back to the release page instead of leaving you on a dead CTA.
         </p>
     </main>
 </body>

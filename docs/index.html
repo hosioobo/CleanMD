@@ -25,132 +25,132 @@
         </nav>
     </header>
 
-    <main>
-        <section class="hero panel">
+    <main class="site-main">
+        <section class="hero">
             <div class="hero-copy">
                 <p class="eyebrow">Native macOS Markdown editor</p>
-                <h1>Write Markdown like it belongs on your Mac.</h1>
+                <h1>Local Markdown editing, with an install path you can inspect.</h1>
                 <p class="lede">
-                    CleanMD keeps your files local, renders previews instantly, and gives you a fast three-pane workflow
-                    without Electron weight, sync tax, or a hosted account.
+                    CleanMD is for people who want plain files, a native split-view workflow, and a release process that
+                    is visible before the first click. No account, no web app shell, no mystery updater.
                 </p>
                 <div class="hero-actions">
                     <a id="primary-download" class="button button-primary" href="./download/?ref=hero">
                         Download for macOS
                     </a>
                     <a class="button button-secondary" href="https://github.com/hosioobo/CleanMD/releases/latest" data-track-click="latest-release">
-                        Open latest release
+                        Inspect the latest release
                     </a>
                 </div>
                 <ul class="hero-signals" aria-label="Product signals">
+                    <li>Public source on GitHub</li>
+                    <li>Offline preview assets</li>
                     <li>Local Markdown and YAML files</li>
-                    <li>Live preview with code + math rendering</li>
-                    <li>Offline-first bundled assets</li>
                 </ul>
             </div>
 
-            <aside class="hero-card">
-                <p class="card-label">Why this page exists</p>
-                <h2>One place to evaluate, trust, and install.</h2>
-                <p>
-                    The first MVP surface is deliberately small: proof, install instructions, a feedback path, and one
-                    clean download route that always points at the latest GitHub release asset.
-                </p>
-                <dl class="hero-facts">
-                    <div>
-                        <dt>Current packaging</dt>
-                        <dd>Ad-hoc signed zip release</dd>
-                    </div>
-                    <div>
-                        <dt>Install flow</dt>
-                        <dd>GitHub Releases via tracked redirect</dd>
-                    </div>
-                    <div>
-                        <dt>Feedback path</dt>
-                        <dd>GitHub issue with install/help prefill</dd>
-                    </div>
-                </dl>
+            <aside class="hero-ledger">
+                <p class="card-label">Trust before install</p>
+                <h2>Everything important is visible up front.</h2>
+                <div class="ledger-list">
+                    <article class="ledger-item">
+                        <span>Source</span>
+                        <strong>MIT-licensed repository</strong>
+                        <a href="https://github.com/hosioobo/CleanMD" data-track-click="ledger-repo">Inspect the code</a>
+                    </article>
+                    <article class="ledger-item">
+                        <span>Release trail</span>
+                        <strong>Tagged GitHub releases</strong>
+                        <a href="https://github.com/hosioobo/CleanMD/releases/latest" data-track-click="ledger-release">Read release notes</a>
+                    </article>
+                    <article class="ledger-item">
+                        <span>Install reality</span>
+                        <strong>Ad-hoc signed, not notarized yet</strong>
+                        <a href="#install-trust">See the exact first-launch steps</a>
+                    </article>
+                </div>
             </aside>
         </section>
 
-        <section class="proof-grid">
-            <article class="panel screenshot-card">
+        <section class="showcase">
+            <article class="showcase-copy panel">
                 <div class="panel-heading">
-                    <p class="eyebrow">Live split view</p>
-                    <h2>Keep editor, explorer, and preview in one native workspace.</h2>
+                    <p class="eyebrow">Why it feels native</p>
+                    <h2>A focused workspace for people who already trust their own files.</h2>
                 </div>
-                <img
-                    src="./assets/screenshots/light-mode.png"
-                    alt="CleanMD light mode with file explorer, editor, and preview visible"
-                    loading="lazy"
-                >
-            </article>
-
-            <article class="panel screenshot-card">
-                <div class="panel-heading">
-                    <p class="eyebrow">Theme control</p>
-                    <h2>Adjust palette and preview styling without leaving the document.</h2>
-                </div>
-                <img
-                    src="./assets/screenshots/dark-mode.png"
-                    alt="CleanMD dark mode with editor and preview visible"
-                    loading="lazy"
-                >
-            </article>
-
-            <article class="panel feature-card">
-                <p class="eyebrow">What you get</p>
-                <h2>Built for Mac developers and writers who live in plain files.</h2>
-                <ul class="feature-list">
-                    <li>Supports `.md`, `.markdown`, `.yml`, and `.yaml` documents</li>
-                    <li>KaTeX math rendering and highlighted fenced code blocks</li>
-                    <li>Folder explorer plus recent-file history</li>
-                    <li>Optional synchronized scrolling between editor and preview</li>
-                    <li>No hosted sync, telemetry account, or cloud dependency required to write</li>
+                <p class="body-copy">
+                    CleanMD keeps the file explorer, editor, and preview visible at once, with code highlighting, math
+                    rendering, and appearance controls that stay inside the app instead of pushing you into a browser.
+                </p>
+                <ul class="proof-points">
+                    <li>SwiftUI + AppKit app instead of a wrapped web shell</li>
+                    <li>Three-pane editing flow for folders, history, and preview</li>
+                    <li>Appearance controls and palette presets built into the workspace</li>
+                    <li>No sync account or hosted backend required to write</li>
                 </ul>
             </article>
+
+            <div class="showcase-stack">
+                <figure class="frame frame-primary panel">
+                    <img
+                        src="./assets/screenshots/light-mode.png"
+                        alt="CleanMD light mode with file explorer, editor, and preview visible"
+                        loading="lazy"
+                    >
+                    <figcaption>Light mode shows the full split-view workflow without hiding navigation or preview.</figcaption>
+                </figure>
+                <figure class="frame frame-secondary panel">
+                    <img
+                        src="./assets/screenshots/dark-mode.png"
+                        alt="CleanMD dark mode with editor and preview visible"
+                        loading="lazy"
+                    >
+                    <figcaption>Dark mode keeps palette adjustments and live rendering inside the same native window.</figcaption>
+                </figure>
+            </div>
         </section>
 
-        <section id="install-trust" class="panel trust-panel">
+        <section id="install-trust" class="trust-section panel">
             <div class="panel-heading">
                 <p class="eyebrow">Install trust</p>
-                <h2>Plainly explained, before you download.</h2>
+                <h2>The honest release story, written for a cautious Mac user.</h2>
             </div>
             <div class="trust-grid">
-                <div>
-                    <h3>Signing status today</h3>
+                <article class="trust-block">
+                    <h3>What the release is</h3>
                     <p>
-                        CleanMD releases are ad-hoc signed for packaging convenience and are <strong>not notarized yet</strong>.
-                        The app is safe to inspect from source, but macOS Gatekeeper can still warn on first launch.
+                        CleanMD ships as an ad-hoc signed zip today and is <strong>not notarized yet</strong>. That means
+                        macOS Gatekeeper can warn on first launch even though the full source and release history are public.
                     </p>
-                </div>
-                <div>
-                    <h3>First launch steps</h3>
+                </article>
+                <article class="trust-block">
+                    <h3>How to open it</h3>
                     <ol class="steps">
                         <li>Download the latest zip and unzip `CleanMD.app`.</li>
                         <li>Move the app to `Applications` if you want a normal install location.</li>
                         <li>If Gatekeeper pauses the first launch, Control-click the app, choose `Open`, and confirm once.</li>
                     </ol>
-                </div>
-                <div>
-                    <h3>Need proof first?</h3>
-                    <p>
-                        Start with the <a href="https://github.com/hosioobo/CleanMD/releases/latest" data-track-click="trust-release">latest release notes</a>,
-                        then come back here to install through the tracked path.
-                    </p>
-                </div>
+                </article>
+                <article class="trust-block">
+                    <h3>Where to verify it</h3>
+                    <ul class="trust-links">
+                        <li><a href="https://github.com/hosioobo/CleanMD" data-track-click="trust-repo">Browse the repository</a></li>
+                        <li><a href="https://github.com/hosioobo/CleanMD/releases/latest" data-track-click="trust-release">Inspect the latest release notes</a></li>
+                        <li><a href="https://github.com/hosioobo/CleanMD/issues/new?title=CleanMD%20feedback%20or%20install%20help" data-track-click="trust-support">Ask for install help or product feedback</a></li>
+                    </ul>
+                </article>
             </div>
         </section>
 
-        <section class="panel support-panel">
-            <div class="panel-heading">
+        <section class="support-band">
+            <div class="support-copy-wrap">
                 <p class="eyebrow">Support + feedback</p>
-                <h2>Installation trouble and product feedback both have a clear path.</h2>
+                <h2>Need more proof, a better launch note, or install help?</h2>
+                <p class="support-copy">
+                    The first release loop stays simple on purpose: GitHub Releases for distribution, GitHub Issues for
+                    help, and a stable Pages surface that tells the truth about how the app is packaged today.
+                </p>
             </div>
-            <p class="support-copy">
-                The fastest support loop for this first release is GitHub Issues. Use the feedback link for install trouble,
-                missing workflow details, or proof you want added before broader launch.
-            </p>
             <div class="hero-actions">
                 <a
                     class="button button-primary"
@@ -167,7 +167,7 @@
     </main>
 
     <footer class="site-footer">
-        <p>CleanMD ships as a lightweight GitHub release today, with a simple Pages surface for evaluation and download.</p>
+        <p>CleanMD ships through plain GitHub releases, with a stable download route and a public repo you can inspect first.</p>
     </footer>
 </body>
 </html>
