@@ -412,6 +412,45 @@ func testWebsiteDownloadRouteLooksUpLatestReleaseAndTracksReferrer() throws {
     try expect(siteJS.contains("release_outbound_click"), "site scripts should track outbound release clicks")
 }
 
+func testLaunchProofAssetsAreWiredAcrossSurfaces() throws {
+    let repoRoot = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+    let indexHTML = try String(
+        contentsOf: repoRoot.appendingPathComponent("docs/index.html"),
+        encoding: .utf8
+    )
+    let readme = try String(
+        contentsOf: repoRoot.appendingPathComponent("README.md"),
+        encoding: .utf8
+    )
+    let releaseNotes = try String(
+        contentsOf: repoRoot.appendingPathComponent("RELEASE_NOTES_v0.10.0.md"),
+        encoding: .utf8
+    )
+
+    let requiredAssets = [
+        "screenshots/appearance-panel.png",
+        "docs/assets/screenshots/appearance-panel.png",
+        "docs/assets/launch/release-proof-grid.png",
+        "docs/assets/launch/rmacapps-proof-grid.png",
+        "docs/assets/launch/demo-poster.png",
+        "docs/assets/demo/cleanmd-proof-demo.mp4",
+        "docs/assets/demo/cleanmd-proof-demo.gif",
+        "docs/launch-assets.md"
+    ]
+
+    try expect(indexHTML.contains("id=\"proof-showcase\""), "landing page should expose the proof showcase section")
+    try expect(indexHTML.contains("appearance-panel.png"), "landing page should include the appearance inspector proof asset")
+    try expect(indexHTML.contains("cleanmd-proof-demo.mp4"), "landing page should expose the short demo asset")
+    try expect(readme.contains("screenshots/appearance-panel.png"), "README should include the appearance inspector screenshot")
+    try expect(readme.contains("docs/assets/demo/cleanmd-proof-demo.gif"), "README should include the proof demo preview")
+    try expect(releaseNotes.contains("release-proof-grid.png"), "release notes should reference the release-page proof grid")
+
+    for asset in requiredAssets {
+        let url = repoRoot.appendingPathComponent(asset)
+        try expect(FileManager.default.fileExists(atPath: url.path), "\(asset) should exist in the repository")
+    }
+}
+
 @main
 enum SmokeTestsMain {
     static func main() throws {
@@ -438,7 +477,8 @@ enum SmokeTestsMain {
             ("ScrollSyncControllerStartsLinked", testScrollSyncControllerStartsLinked),
             ("ScrollSyncControllerSyncsPreviewByDefault", testScrollSyncControllerSyncsPreviewByDefault),
             ("WebsiteLandingPageIncludesDownloadTrustAndFeedback", testWebsiteLandingPageIncludesDownloadTrustAndFeedback),
-            ("WebsiteDownloadRouteLooksUpLatestReleaseAndTracksReferrer", testWebsiteDownloadRouteLooksUpLatestReleaseAndTracksReferrer)
+            ("WebsiteDownloadRouteLooksUpLatestReleaseAndTracksReferrer", testWebsiteDownloadRouteLooksUpLatestReleaseAndTracksReferrer),
+            ("LaunchProofAssetsAreWiredAcrossSurfaces", testLaunchProofAssetsAreWiredAcrossSurfaces)
         ]
 
         for (name, test) in tests {

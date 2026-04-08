@@ -51,7 +51,7 @@
                     >
                         Download for macOS
                     </a>
-                    <a class="button button-secondary" href="#hero-proof">
+                    <a class="button button-secondary" href="#proof-showcase">
                         See the app first
                     </a>
                 </div>
@@ -132,12 +132,29 @@
                 </ul>
             </article>
 
-            <article class="technical-proof panel">
+            <article id="proof-showcase" class="technical-proof panel">
                 <div class="panel-heading">
-                    <p class="eyebrow">Technical proof</p>
-                    <h2>Show technical Markdown, not just prose.</h2>
+                    <p class="eyebrow">Proof assets</p>
+                    <h2>Show the real app before asking for a download.</h2>
                 </div>
-                <div class="technical-proof-grid">
+                <p class="body-copy technical-proof-copy">
+                    Launch surfaces now share the same three proof screenshots and a short demo that follows the approved GTM sequence from folder open to download CTA.
+                </p>
+                <div class="proof-gallery">
+                    <a
+                        class="technical-proof-link"
+                        href="./assets/screenshots/light-mode.png"
+                        target="_blank"
+                        rel="noreferrer"
+                        data-track-click="screenshot_open"
+                    >
+                        <img
+                            src="./assets/screenshots/light-mode.png"
+                            alt="CleanMD light mode with sidebar, editor, and preview visible"
+                            loading="lazy"
+                        >
+                        <span>Light-mode hero proof</span>
+                    </a>
                     <a
                         class="technical-proof-link"
                         href="./assets/screenshots/dark-mode.png"
@@ -150,10 +167,38 @@
                             alt="CleanMD dark mode with editor and preview visible"
                             loading="lazy"
                         >
+                        <span>Technical markdown proof</span>
                     </a>
-                    <p class="body-copy">
-                        Side-by-side source and rendered preview make tables, code, and math easier to check without leaving the app.
-                    </p>
+                    <a
+                        class="technical-proof-link"
+                        href="./assets/screenshots/appearance-panel.png"
+                        target="_blank"
+                        rel="noreferrer"
+                        data-track-click="screenshot_open"
+                    >
+                        <img
+                            src="./assets/screenshots/appearance-panel.png"
+                            alt="CleanMD appearance inspector with presets and palette controls visible"
+                            loading="lazy"
+                        >
+                        <span>Appearance inspector proof</span>
+                    </a>
+                </div>
+                <div class="demo-proof panel">
+                    <div class="demo-proof-copy">
+                        <p class="eyebrow">Short Demo</p>
+                        <h3>24 seconds from local folder to release page.</h3>
+                        <p class="body-copy">
+                            The proof demo stays narrow: open a folder, jump between Markdown files, show rendered verification, open the appearance inspector, and end on the live download path.
+                        </p>
+                        <a class="button button-secondary" href="./assets/demo/cleanmd-proof-demo.mp4">
+                            Download the demo
+                        </a>
+                    </div>
+                    <video controls preload="metadata" poster="./assets/launch/demo-poster.png">
+                        <source src="./assets/demo/cleanmd-proof-demo.mp4" type="video/mp4">
+                        <a href="./assets/demo/cleanmd-proof-demo.mp4">Download the short demo</a>
+                    </video>
                 </div>
             </article>
         </section>
@@ -218,7 +263,7 @@
             <div class="support-copy-wrap">
                 <h2>See the app. Read the release. Install if it fits.</h2>
                 <p class="support-copy">
-                    Look at the screenshots, check the release notes, and use the download route when you are ready.
+                    Look at the screenshots and short demo, check the release notes, and use the download route when you are ready.
                 </p>
             </div>
             <div class="hero-actions">

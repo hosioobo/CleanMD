@@ -14,6 +14,16 @@
 - Folder and history navigation in the sidebar
 - GitHub Actions CI plus smoke-test coverage for preview, palettes, and window behavior
 
+## Launch Proof Assets
+
+Use the publish-ready launch variants when you update the website, README, release page, or `r/macapps`.
+
+![CleanMD release proof grid](docs/assets/launch/release-proof-grid.png)
+
+- Short demo: [`docs/assets/demo/cleanmd-proof-demo.mp4`](docs/assets/demo/cleanmd-proof-demo.mp4)
+- Reddit proof sheet: [`docs/assets/launch/rmacapps-proof-grid.png`](docs/assets/launch/rmacapps-proof-grid.png)
+- Surface map: [`docs/launch-assets.md`](docs/launch-assets.md)
+
 ## Platform
 
 - macOS 13 or later

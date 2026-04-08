@@ -42,7 +42,8 @@ Recommended captures:
 
 - light mode full split view using `SCREENSHOT_LIGHT.md`
 - dark mode full split view using `SCREENSHOT_DARK.md`
-- palette customization panel
+- appearance inspector with the Paper preset and live palette controls visible
+- short proof demo exported from `./scripts/build-launch-assets.sh`
 
 ### Light Mode
 
@@ -51,6 +52,20 @@ Recommended captures:
 ### Dark Mode
 
 ![CleanMD dark mode](screenshots/dark-mode.png)
+
+### Appearance Inspector
+
+![CleanMD appearance inspector](screenshots/appearance-panel.png)
+
+## Demo
+
+The launch proof kit includes a short 24-second walkthrough that follows the approved GTM sequence from folder open to download CTA.
+
+![CleanMD proof demo](docs/assets/demo/cleanmd-proof-demo.gif)
+
+Download the MP4: [`docs/assets/demo/cleanmd-proof-demo.mp4`](docs/assets/demo/cleanmd-proof-demo.mp4)
+
+Surface-by-surface asset notes live in [`docs/launch-assets.md`](docs/launch-assets.md).
 
 ## Requirements
 
@@ -90,7 +105,9 @@ This project is built with Swift Package Manager and a shell packaging script â€
 
 - `CleanMD/`: Swift source files and bundled preview assets
 - `docs/`: GitHub Pages website, tracked download route, and lightweight client-side analytics
+- `docs/launch-assets.md`: publish-ready proof asset map for website, README, release page, and `r/macapps`
 - `build.sh`: local packaging script for `CleanMD.app`
+- `scripts/build-launch-assets.sh`: regenerate the launch screenshots, proof grids, and demo assets
 - `Info.plist`: app metadata and document type registration
 - `makeicon.swift`: script used to generate app icon assets
 
