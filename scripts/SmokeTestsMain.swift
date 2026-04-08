@@ -367,11 +367,13 @@ func testScrollSyncControllerSyncsPreviewByDefault() throws {
 }
 
 func testWebsiteLandingPageIncludesDownloadTrustAndFeedback() throws {
+    let repoRoot = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
     let indexHTML = try String(
-        contentsOf: URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+        contentsOf: repoRoot
             .appendingPathComponent("docs/index.html"),
         encoding: .utf8
     )
+    let brandIcon = repoRoot.appendingPathComponent("docs/assets/brand/app-icon.png")
 
     try expect(indexHTML.contains("id=\"primary-download\""), "landing page should expose a primary download CTA")
     try expect(indexHTML.contains("href=\"./download/?ref=hero\""), "landing page should route the hero CTA through the tracked download path")
@@ -382,6 +384,9 @@ func testWebsiteLandingPageIncludesDownloadTrustAndFeedback() throws {
     try expect(indexHTML.contains("id=\"hero-proof\""), "landing page should put a real product screenshot in the hero")
     try expect(indexHTML.contains("id=\"comparison-section\""), "landing page should include a comparison section before the final CTA")
     try expect(indexHTML.contains("data-track-click=\"hero_download_click\""), "hero download CTA should use the named GTM event")
+    try expect(indexHTML.contains("app-icon.png"), "landing page should use the bundled app icon")
+    try expect(FileManager.default.fileExists(atPath: brandIcon.path), "landing page should ship the app icon under docs/assets")
+    try expect(!indexHTML.contains("Final CTA"), "landing page should not expose internal CTA labels to users")
 }
 
 func testWebsiteDownloadRouteLooksUpLatestReleaseAndTracksReferrer() throws {

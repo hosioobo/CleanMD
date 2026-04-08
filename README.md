@@ -1,8 +1,8 @@
 # CleanMD
 
-Native macOS Markdown editing for developers who want local files, live preview, and a lighter workflow than a full knowledge base.
+Native macOS Markdown editing for people who want local files, split preview, and a lighter workflow than a full knowledge base.
 
-CleanMD is a native macOS Markdown editor built for people who already keep Markdown in folders and repos. You edit the source on one side, review the rendered result on the other, and keep code blocks, tables, links, and math easy to verify without cloud lock-in or plugin setup.
+CleanMD is a native macOS Markdown editor built for people who already keep Markdown in folders and repos. Open a folder, edit Markdown, and check the rendered result side by side. Code blocks, tables, links, and math stay easy to verify without vault setup or a plugin stack.
 
 ## Website
 
@@ -12,7 +12,7 @@ The public website lives in `docs/` and is intended for GitHub Pages:
 - Tracked download route: `https://hosioobo.github.io/CleanMD/download/`
 - GitHub Releases fallback: `https://github.com/hosioobo/CleanMD/releases/latest`
 
-The tracked `/download/` page resolves the newest GitHub release asset at runtime, so the primary CTA can stay stable while release zip names remain versioned.
+The tracked `/download/` page resolves the newest GitHub release asset at runtime, so the public download button can stay stable while release zip names remain versioned.
 
 ## Features
 
@@ -74,7 +74,7 @@ Regular users should start with the website and primary tracked download path:
 3. Move `CleanMD.app` to your Applications folder if desired.
 4. Open `CleanMD.app`.
 
-Early releases are packaged and ad-hoc signed for convenience, but they are not notarized yet. macOS Gatekeeper may show a warning the first time you open the app.
+Early releases are packaged and ad-hoc signed for convenience, but they are not notarized yet. macOS Gatekeeper may show a warning the first time you open the app, so use Control-click -> `Open` on first launch if needed.
 
 ## Build From Source
 
