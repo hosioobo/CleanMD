@@ -43,12 +43,6 @@ The public website lives in `docs/` and is intended for GitHub Pages.
 
 ![CleanMD Cool light theme](screenshots/cool-theme-light.png)
 
-## Synced scroll demo
-
-![CleanMD synced scroll demo](docs/assets/demo/cleanmd-synced-scroll.gif)
-
-Download the MP4: [`docs/assets/demo/cleanmd-synced-scroll.mp4`](docs/assets/demo/cleanmd-synced-scroll.mp4)
-
 ## Requirements
 
 - macOS 13 or later

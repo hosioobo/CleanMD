@@ -9,7 +9,6 @@ All notable project updates are tracked here.
 ### Added
 
 - New public screenshots for the default light and dark views plus the Paper and Cool light themes.
-- A short synced-scroll demo clip showing the editor and preview moving together on a longer Markdown file.
 
 ### Improved
 

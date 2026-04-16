@@ -425,22 +425,16 @@ func testLaunchProofAssetsAreWiredAcrossSurfaces() throws {
     let requiredAssets = [
         "screenshots/paper-theme-light.png",
         "screenshots/cool-theme-light.png",
-        "screenshots/synced-scroll.png",
         "docs/assets/screenshots/paper-theme-light.png",
         "docs/assets/screenshots/cool-theme-light.png",
-        "docs/assets/launch/demo-poster.png",
-        "docs/assets/demo/cleanmd-synced-scroll.mp4",
-        "docs/assets/demo/cleanmd-synced-scroll.gif",
         "docs/launch-assets.md"
     ]
 
     try expect(indexHTML.contains("id=\"proof\""), "landing page should expose the proof section")
     try expect(indexHTML.contains("paper-theme-light.png"), "landing page should include the Paper theme screenshot")
     try expect(indexHTML.contains("cool-theme-light.png"), "landing page should include the Cool theme screenshot")
-    try expect(indexHTML.contains("cleanmd-synced-scroll.mp4"), "landing page should expose the synced-scroll demo asset")
     try expect(readme.contains("screenshots/paper-theme-light.png"), "README should include the Paper theme screenshot")
     try expect(readme.contains("screenshots/cool-theme-light.png"), "README should include the Cool theme screenshot")
-    try expect(readme.contains("docs/assets/demo/cleanmd-synced-scroll.gif"), "README should include the synced-scroll demo preview")
 
     for asset in requiredAssets {
         let url = repoRoot.appendingPathComponent(asset)

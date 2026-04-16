@@ -7,7 +7,7 @@ CleanMD is for Markdown and adjacent plain-text files that already live in norma
 - Markdown editing with rendered preview beside the source
 - A neighboring YAML file in the same sidebar
 - Code fences, tables, links, and math in one native window
-- A longer file for synced-scroll captures
+
 
 ## Quick checks
 
