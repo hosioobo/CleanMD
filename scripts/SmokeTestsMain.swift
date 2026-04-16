@@ -382,7 +382,7 @@ func testWebsiteLandingPageIncludesDownloadTrustAndFeedback() throws {
     try expect(indexHTML.contains("href=\"https://github.com/hosioobo/CleanMD/issues/new"), "landing page should expose a support or feedback path")
     try expect(indexHTML.contains("data-site-event=\"page_view\""), "landing page should include a page-view analytics marker")
     try expect(indexHTML.contains("id=\"hero-proof\""), "landing page should put a real product screenshot in the hero")
-    try expect(indexHTML.contains("id=\"comparison-section\""), "landing page should include a comparison section before the final CTA")
+    try expect(indexHTML.contains("id=\"comparison-section\""), "landing page should include a middle section between the hero and install guidance")
     try expect(indexHTML.contains("data-track-click=\"hero_download_click\""), "hero download CTA should use the named GTM event")
     try expect(indexHTML.contains("app-icon.png"), "landing page should use the bundled app icon")
     try expect(FileManager.default.fileExists(atPath: brandIcon.path), "landing page should ship the app icon under docs/assets")
@@ -422,28 +422,25 @@ func testLaunchProofAssetsAreWiredAcrossSurfaces() throws {
         contentsOf: repoRoot.appendingPathComponent("README.md"),
         encoding: .utf8
     )
-    let releaseNotes = try String(
-        contentsOf: repoRoot.appendingPathComponent("RELEASE_NOTES_v0.10.0.md"),
-        encoding: .utf8
-    )
-
     let requiredAssets = [
-        "screenshots/appearance-panel.png",
-        "docs/assets/screenshots/appearance-panel.png",
-        "docs/assets/launch/release-proof-grid.png",
-        "docs/assets/launch/rmacapps-proof-grid.png",
+        "screenshots/paper-theme-light.png",
+        "screenshots/cool-theme-light.png",
+        "screenshots/synced-scroll.png",
+        "docs/assets/screenshots/paper-theme-light.png",
+        "docs/assets/screenshots/cool-theme-light.png",
         "docs/assets/launch/demo-poster.png",
-        "docs/assets/demo/cleanmd-proof-demo.mp4",
-        "docs/assets/demo/cleanmd-proof-demo.gif",
+        "docs/assets/demo/cleanmd-synced-scroll.mp4",
+        "docs/assets/demo/cleanmd-synced-scroll.gif",
         "docs/launch-assets.md"
     ]
 
-    try expect(indexHTML.contains("id=\"proof-showcase\""), "landing page should expose the proof showcase section")
-    try expect(indexHTML.contains("appearance-panel.png"), "landing page should include the appearance inspector proof asset")
-    try expect(indexHTML.contains("cleanmd-proof-demo.mp4"), "landing page should expose the short demo asset")
-    try expect(readme.contains("screenshots/appearance-panel.png"), "README should include the appearance inspector screenshot")
-    try expect(readme.contains("docs/assets/demo/cleanmd-proof-demo.gif"), "README should include the proof demo preview")
-    try expect(releaseNotes.contains("release-proof-grid.png"), "release notes should reference the release-page proof grid")
+    try expect(indexHTML.contains("id=\"proof\""), "landing page should expose the proof section")
+    try expect(indexHTML.contains("paper-theme-light.png"), "landing page should include the Paper theme screenshot")
+    try expect(indexHTML.contains("cool-theme-light.png"), "landing page should include the Cool theme screenshot")
+    try expect(indexHTML.contains("cleanmd-synced-scroll.mp4"), "landing page should expose the synced-scroll demo asset")
+    try expect(readme.contains("screenshots/paper-theme-light.png"), "README should include the Paper theme screenshot")
+    try expect(readme.contains("screenshots/cool-theme-light.png"), "README should include the Cool theme screenshot")
+    try expect(readme.contains("docs/assets/demo/cleanmd-synced-scroll.gif"), "README should include the synced-scroll demo preview")
 
     for asset in requiredAssets {
         let url = repoRoot.appendingPathComponent(asset)

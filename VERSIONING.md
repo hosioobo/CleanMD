@@ -7,8 +7,7 @@ CleanMD uses a simple release structure based on semantic versioning, a shared c
 These files are the project-owned release records:
 
 - `Info.plist` — app version (`CFBundleShortVersionString`) and build number (`CFBundleVersion`)
-- `CHANGELOG.md` — ongoing user-facing change history
-- `RELEASE_NOTES_vX.Y.Z.md` — per-release notes for GitHub Releases
+- `CHANGELOG.md` — ongoing user-facing change history and the source for GitHub Release notes
 - `VERSIONING.md` — policy and release checklist
 
 ## Version Format
@@ -58,7 +57,6 @@ When preparing a release, move those notes into a versioned section such as `## 
 ## Git and Release Naming
 
 - Git tag: `v0.8.0`
-- Release notes file: `RELEASE_NOTES_v0.8.0.md`
 - Packaged artifact: `CleanMD-v0.8.0-macOS.zip`
 
 ## Release Checklist
@@ -66,7 +64,7 @@ When preparing a release, move those notes into a versioned section such as `## 
 1. Choose the next release version and build number.
 2. Run `./scripts/prepare-release.sh <version> <build>`.
 3. Move `CHANGELOG.md` entries from `Unreleased` into a dated release section.
-4. Review or complete `RELEASE_NOTES_v<version>.md`.
+4. Review the finalized `CHANGELOG.md` section for `v<version>`.
 5. Run the full release flow:
    - `./scripts/release.sh <version> <build>`
 6. Verify the GitHub Release page and uploaded zip asset.
@@ -76,7 +74,7 @@ When preparing a release, move those notes into a versioned section such as `## 
 - `./scripts/prepare-release.sh 0.8.0 8`
   - updates `Info.plist`
   - refuses to reuse a version that already has a Git tag or changelog section
-  - creates a release notes template if missing
+
 - `./scripts/package-release.sh`
   - builds `CleanMD.app`
   - creates `CleanMD-v<current-version>-macOS.zip`
@@ -86,7 +84,7 @@ When preparing a release, move those notes into a versioned section such as `## 
   - commits release metadata, tags the release, pushes Git refs, and creates the GitHub Release
   - supports `--dry-run` for a local preflight without push/release creation
 - `./scripts/create-github-release.sh 0.8.0`
-  - creates the GitHub Release from the local tag, release notes, and packaged zip
+  - creates the GitHub Release from the local tag, the matching `CHANGELOG.md` section, and the packaged zip
 
 ## CI
 
@@ -98,7 +96,7 @@ When preparing a release, move those notes into a versioned section such as `## 
 Use this policy:
 
 - Put the **canonical versioning policy** in tracked project files like `VERSIONING.md`.
-- Keep release history in `CHANGELOG.md` and `RELEASE_NOTES_vX.Y.Z.md`.
+- Keep release history in `CHANGELOG.md` and on GitHub Releases.
 - Keep helper automation in tracked project scripts such as `scripts/prepare-release.sh` and `scripts/package-release.sh`.
 - Keep agent/tool state out of Git: `.omx/`, `.claude/`, `.codex/`, and similar local folders should stay ignored.
 - Do **not** use tool-specific folders as the source of truth for release policy.

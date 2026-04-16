@@ -4,6 +4,23 @@ All notable project updates are tracked here.
 
 ## Unreleased
 
+## v0.11.0 — 2026-04-15
+
+### Added
+
+- New public screenshots for the default light and dark views plus the Paper and Cool light themes.
+- A short synced-scroll demo clip showing the editor and preview moving together on a longer Markdown file.
+
+### Improved
+
+- The website now uses a leaner structure focused on product definition, proof, and install guidance.
+- The README now centers on current app captures instead of the older launch-proof media set.
+- GitHub release creation now pulls release text from the matching `CHANGELOG.md` section.
+
+### Removed
+
+- Version-specific `RELEASE_NOTES_v*.md` files from the repository.
+
 ## v0.10.0 — 2026-04-01
 
 ### Added

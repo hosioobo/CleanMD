@@ -6,7 +6,7 @@
     <title>CleanMD | Native macOS Markdown editor</title>
     <meta
         name="description"
-        content="CleanMD is a native macOS Markdown editor for local files, split preview, and a stable download route to the latest release."
+        content="CleanMD is a native macOS Markdown editor for local files, side-by-side preview, and technical docs that should stay as plain files."
     >
     <link rel="icon" type="image/png" href="./assets/brand/app-icon.png">
     <link rel="apple-touch-icon" href="./assets/brand/app-icon.png">
@@ -23,9 +23,10 @@
             <span>CleanMD</span>
         </a>
         <nav class="header-links" aria-label="Primary">
+            <a href="#proof">Proof</a>
+            <a href="#install-trust">Install</a>
             <a href="https://github.com/hosioobo/CleanMD" data-track-click="repo">Repository</a>
             <a href="https://github.com/hosioobo/CleanMD/releases/latest" data-track-click="releases">Releases</a>
-            <a href="#install-trust">Install trust</a>
             <a href="https://github.com/hosioobo/CleanMD/issues/new?title=CleanMD%20feedback%20or%20install%20help" data-track-click="support">Support</a>
         </nav>
     </header>
@@ -37,30 +38,21 @@
                     <img class="hero-app-icon" src="./assets/brand/app-icon.png" alt="CleanMD app icon" width="84" height="84">
                     <p class="eyebrow">Native macOS Markdown editor</p>
                 </div>
-                <h1>Markdown that feels native on Mac.</h1>
+                <h1>Open local Markdown. Keep the preview beside it.</h1>
                 <p class="lede">
-                    Open a folder, edit Markdown, and check the rendered result side by side.
-                    CleanMD stays focused on local files instead of vault setup, cloud accounts, or plugin stacks.
+                    CleanMD is for READMEs, docs, specs, notes, and adjacent YAML that already live in folders and repos.
+                    Edit the source and verify the rendered result in one native Mac window.
                 </p>
                 <div class="hero-actions">
-                    <a
-                        id="primary-download"
-                        class="button button-primary"
-                        href="./download/?ref=hero"
-                        data-track-click="hero_download_click"
-                    >
-                        Download for macOS
-                    </a>
-                    <a class="button button-secondary" href="#proof-showcase">
-                        See the app first
-                    </a>
+                    <a id="primary-download" class="button button-primary" href="./download/?ref=hero" data-track-click="hero_download_click">Download for macOS</a>
+                    <a class="button button-secondary" href="#proof">See screenshots</a>
                 </div>
-                <p class="hero-microcopy">macOS 13+. Downloads ship through GitHub Releases. First-open steps are below.</p>
-                <ul class="hero-signals" aria-label="Trust chips">
+                <p class="hero-microcopy">macOS 13+. Downloads ship through GitHub Releases. Not notarized yet.</p>
+                <ul class="hero-signals" aria-label="Key points">
                     <li>Native Mac app</li>
                     <li>Local files</li>
-                    <li>Offline preview assets</li>
-                    <li>Code, tables, math</li>
+                    <li>Split source + preview</li>
+                    <li>Code, tables, math, YAML</li>
                 </ul>
             </div>
 
@@ -79,9 +71,7 @@
                         loading="eager"
                     >
                 </a>
-                <p class="hero-visual-note">
-                    Real UI: folder navigation, source editing, and rendered preview in one native window.
-                </p>
+                <p class="hero-visual-note">Current app capture from the shipped split-view workflow.</p>
             </div>
 
             <aside class="hero-ledger">
@@ -98,138 +88,83 @@
                 <article class="ledger-item">
                     <span>Install reality</span>
                     <strong>Ad-hoc signed, not notarized yet</strong>
-                    <a href="#install-trust">See the exact first-open steps</a>
+                    <a href="#install-trust">See first-open steps</a>
                 </article>
             </aside>
         </section>
 
-        <section class="message-grid">
+        <section id="comparison-section" class="message-grid">
             <article class="message-card panel">
                 <div class="panel-heading">
-                    <p class="eyebrow">Who it is for</p>
-                    <h2>For Markdown that already lives in folders and repos.</h2>
+                    <p class="eyebrow">Why use it</p>
+                    <h2>For Markdown that should stay as plain files.</h2>
                 </div>
                 <p class="body-copy">
-                    Use it for READMEs, specs, release notes, docs, and notes you keep as plain files.
-                    CleanMD is strongest when the job is opening a folder and getting to work.
+                    CleanMD is strongest when the job is opening a folder and getting to work without a vault, sync layer, or plugin stack.
                 </p>
             </article>
 
             <article class="message-card panel">
                 <div class="panel-heading">
-                    <p class="eyebrow">Why it wins</p>
-                    <h2>Write in source. Check the output beside it.</h2>
+                    <p class="eyebrow">What it handles</p>
+                    <h2>Technical writing that needs quick verification.</h2>
                 </div>
-                <p class="body-copy">
-                    Keep the text editor and rendered preview visible at the same time so code fences, tables, links, and math
-                    are easy to verify before you commit, ship, or share.
-                </p>
                 <ul class="proof-points">
-                    <li>File explorer and history for fast local navigation</li>
-                    <li>Syntax highlighting and KaTeX for technical docs</li>
-                    <li>Offline bundled renderer assets for predictable preview behavior</li>
-                    <li>Appearance presets when you want a cleaner reading surface</li>
+                    <li>Markdown source and rendered preview stay visible together</li>
+                    <li>Code fences, tables, links, and math are easy to verify before publishing</li>
+                    <li>YAML files can stay in the same sidebar as the docs they support</li>
+                    <li>History and file navigation stay inside the same window</li>
                 </ul>
-            </article>
-
-            <article id="proof-showcase" class="technical-proof panel">
-                <div class="panel-heading">
-                    <p class="eyebrow">Proof assets</p>
-                    <h2>Show the real app before asking for a download.</h2>
-                </div>
-                <p class="body-copy technical-proof-copy">
-                    Launch surfaces now share the same three proof screenshots and a short demo that follows the approved GTM sequence from folder open to download CTA.
-                </p>
-                <div class="proof-gallery">
-                    <a
-                        class="technical-proof-link"
-                        href="./assets/screenshots/light-mode.png"
-                        target="_blank"
-                        rel="noreferrer"
-                        data-track-click="screenshot_open"
-                    >
-                        <img
-                            src="./assets/screenshots/light-mode.png"
-                            alt="CleanMD light mode with sidebar, editor, and preview visible"
-                            loading="lazy"
-                        >
-                        <span>Light-mode hero proof</span>
-                    </a>
-                    <a
-                        class="technical-proof-link"
-                        href="./assets/screenshots/dark-mode.png"
-                        target="_blank"
-                        rel="noreferrer"
-                        data-track-click="screenshot_open"
-                    >
-                        <img
-                            src="./assets/screenshots/dark-mode.png"
-                            alt="CleanMD dark mode with editor and preview visible"
-                            loading="lazy"
-                        >
-                        <span>Technical markdown proof</span>
-                    </a>
-                    <a
-                        class="technical-proof-link"
-                        href="./assets/screenshots/appearance-panel.png"
-                        target="_blank"
-                        rel="noreferrer"
-                        data-track-click="screenshot_open"
-                    >
-                        <img
-                            src="./assets/screenshots/appearance-panel.png"
-                            alt="CleanMD appearance inspector with presets and palette controls visible"
-                            loading="lazy"
-                        >
-                        <span>Appearance inspector proof</span>
-                    </a>
-                </div>
-                <div class="demo-proof panel">
-                    <div class="demo-proof-copy">
-                        <p class="eyebrow">Short Demo</p>
-                        <h3>24 seconds from local folder to release page.</h3>
-                        <p class="body-copy">
-                            The proof demo stays narrow: open a folder, jump between Markdown files, show rendered verification, open the appearance inspector, and end on the live download path.
-                        </p>
-                        <a class="button button-secondary" href="./assets/demo/cleanmd-proof-demo.mp4">
-                            Download the demo
-                        </a>
-                    </div>
-                    <video controls preload="metadata" poster="./assets/launch/demo-poster.png">
-                        <source src="./assets/demo/cleanmd-proof-demo.mp4" type="video/mp4">
-                        <a href="./assets/demo/cleanmd-proof-demo.mp4">Download the short demo</a>
-                    </video>
-                </div>
             </article>
         </section>
 
-        <section id="comparison-section" class="comparison-section panel">
+        <section id="proof" class="technical-proof panel">
             <div class="panel-heading">
-                <p class="eyebrow">Why this instead</p>
-                <h2>Lighter than a knowledge base. More inspectable than a drafting canvas.</h2>
-                <p class="body-copy">
-                    CleanMD is for people who want a native Mac workspace for local Markdown editing and rendered review.
+                <p class="eyebrow">Proof</p>
+                <h2>What the app looks like right now.</h2>
+                <p class="body-copy technical-proof-copy">
+                    These captures come from the current app. They show the default light and dark views, the Paper and Cool light themes, and a short synced-scroll demo.
                 </p>
             </div>
-            <div class="comparison-grid">
-                <article class="comparison-card">
-                    <h3>Instead of Obsidian</h3>
-                    <p>Choose CleanMD when you want local Markdown editing and rendered review without turning the workflow into a vault and plugin system.</p>
-                </article>
-                <article class="comparison-card">
-                    <h3>Instead of iA Writer</h3>
-                    <p>Choose CleanMD when technical Markdown needs source and rendered output visible together while you work.</p>
-                </article>
-                <article class="comparison-card">
-                    <h3>Instead of Typora</h3>
-                    <p>Choose CleanMD when you want sidebar navigation, split preview, and a more inspectable native Mac workspace.</p>
-                </article>
+
+            <div class="proof-gallery">
+                <a class="technical-proof-link" href="./assets/screenshots/light-mode.png" target="_blank" rel="noreferrer" data-track-click="screenshot_open">
+                    <img src="./assets/screenshots/light-mode.png" alt="CleanMD in default light mode" loading="lazy">
+                    <span>Default light</span>
+                </a>
+                <a class="technical-proof-link" href="./assets/screenshots/dark-mode.png" target="_blank" rel="noreferrer" data-track-click="screenshot_open">
+                    <img src="./assets/screenshots/dark-mode.png" alt="CleanMD in default dark mode" loading="lazy">
+                    <span>Default dark</span>
+                </a>
+                <a class="technical-proof-link" href="./assets/screenshots/paper-theme-light.png" target="_blank" rel="noreferrer" data-track-click="screenshot_open">
+                    <img src="./assets/screenshots/paper-theme-light.png" alt="CleanMD in Paper light theme" loading="lazy">
+                    <span>Paper light</span>
+                </a>
+                <a class="technical-proof-link" href="./assets/screenshots/cool-theme-light.png" target="_blank" rel="noreferrer" data-track-click="screenshot_open">
+                    <img src="./assets/screenshots/cool-theme-light.png" alt="CleanMD in Cool light theme" loading="lazy">
+                    <span>Cool light</span>
+                </a>
+            </div>
+
+            <div class="demo-proof panel">
+                <div class="demo-proof-copy">
+                    <p class="eyebrow">Synced scroll</p>
+                    <h3>One short clip of the editor and preview moving together.</h3>
+                    <p class="body-copy">
+                        This clip shows a longer Markdown file so the editor and rendered preview can be checked together while scrolling.
+                    </p>
+                    <a class="button button-secondary" href="./assets/demo/cleanmd-synced-scroll.mp4">Download the MP4</a>
+                </div>
+                <video controls preload="metadata" poster="./assets/launch/demo-poster.png">
+                    <source src="./assets/demo/cleanmd-synced-scroll.mp4" type="video/mp4">
+                    <a href="./assets/demo/cleanmd-synced-scroll.mp4">Download the synced-scroll demo</a>
+                </video>
             </div>
         </section>
 
         <section id="install-trust" class="trust-section panel">
             <div class="panel-heading">
-                <p class="eyebrow">Install trust</p>
+                <p class="eyebrow">Install</p>
                 <h2>Download from GitHub, with the first-open caveat spelled out.</h2>
             </div>
             <div class="trust-grid">
@@ -243,9 +178,9 @@
                 <article class="trust-block">
                     <h3>First-open steps</h3>
                     <ol class="steps">
-                        <li>Download the latest zip and unzip `CleanMD.app`.</li>
-                        <li>Move the app to `Applications` if you want a normal install location.</li>
-                        <li>If Gatekeeper pauses the first launch, Control-click the app, choose `Open`, and confirm once.</li>
+                        <li>Download the latest zip and unzip <code>CleanMD.app</code>.</li>
+                        <li>Move the app to <code>Applications</code> if you want a normal install location.</li>
+                        <li>If Gatekeeper pauses the first launch, Control-click the app, choose <code>Open</code>, and confirm once.</li>
                     </ol>
                 </article>
                 <article class="trust-block">
@@ -253,32 +188,11 @@
                     <ul class="trust-links">
                         <li><a href="https://github.com/hosioobo/CleanMD/releases/latest" data-track-click="release_outbound_click">Inspect the latest release notes</a></li>
                         <li><a href="https://github.com/hosioobo/CleanMD" data-track-click="repo_inspect">Browse the repository</a></li>
-                        <li><a href="https://github.com/hosioobo/CleanMD/issues/new?title=CleanMD%20feedback%20or%20install%20help" data-track-click="feedback_issue">Ask for install help or product feedback</a></li>
+                        <li><a href="./assets/demo/cleanmd-synced-scroll.mp4">Download the synced-scroll demo</a></li>
                     </ul>
                 </article>
             </div>
         </section>
-
-        <section class="final-cta panel">
-            <div class="support-copy-wrap">
-                <h2>See the app. Read the release. Install if it fits.</h2>
-                <p class="support-copy">
-                    Look at the screenshots and short demo, check the release notes, and use the download route when you are ready.
-                </p>
-            </div>
-            <div class="hero-actions">
-                <a class="button button-primary" href="./download/?ref=final" data-track-click="final_download_click">
-                    Download CleanMD
-                </a>
-                <a class="button button-secondary" href="https://github.com/hosioobo/CleanMD/releases/latest" data-track-click="release_outbound_click">
-                    Read latest release
-                </a>
-            </div>
-        </section>
     </main>
-
-    <footer class="site-footer">
-        <p>CleanMD ships through GitHub Releases, with a stable download route and a public repo you can inspect before installing.</p>
-    </footer>
 </body>
 </html>
