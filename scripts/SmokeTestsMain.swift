@@ -373,19 +373,15 @@ func testWebsiteLandingPageIncludesDownloadTrustAndFeedback() throws {
             .appendingPathComponent("docs/index.html"),
         encoding: .utf8
     )
-    let brandIcon = repoRoot.appendingPathComponent("docs/assets/brand/app-icon.png")
 
-    try expect(indexHTML.contains("id=\"primary-download\""), "landing page should expose a primary download CTA")
-    try expect(indexHTML.contains("href=\"./download/?ref=hero\""), "landing page should route the hero CTA through the tracked download path")
-    try expect(indexHTML.contains("id=\"install-trust\""), "landing page should include an install trust section")
+    try expect(indexHTML.contains("Keep the preview beside it."), "landing page should keep the approved hero headline")
+    try expect(indexHTML.contains("Download for macOS"), "landing page should expose a primary download CTA")
+    try expect(indexHTML.contains("https://github.com/hosioobo/CleanMD/releases/latest"), "landing page should link directly to the latest release")
     try expect(indexHTML.contains("not notarized yet"), "landing page should explain the current notarization status")
-    try expect(indexHTML.contains("href=\"https://github.com/hosioobo/CleanMD/issues/new"), "landing page should expose a support or feedback path")
-    try expect(indexHTML.contains("data-site-event=\"page_view\""), "landing page should include a page-view analytics marker")
-    try expect(indexHTML.contains("id=\"hero-proof\""), "landing page should put a real product screenshot in the hero")
-    try expect(indexHTML.contains("id=\"comparison-section\""), "landing page should include a middle section between the hero and install guidance")
-    try expect(indexHTML.contains("data-track-click=\"hero_download_click\""), "hero download CTA should use the named GTM event")
-    try expect(indexHTML.contains("app-icon.png"), "landing page should use the bundled app icon")
-    try expect(FileManager.default.fileExists(atPath: brandIcon.path), "landing page should ship the app icon under docs/assets")
+    try expect(indexHTML.contains("https://github.com/hosioobo/CleanMD/issues/new"), "landing page should expose a support or feedback path")
+    try expect(indexHTML.contains("See screenshots"), "landing page should expose the screenshots jump link")
+    try expect(indexHTML.contains("Browse repository →"), "landing page should expose the repository verification path")
+    try expect(indexHTML.contains("X @hosi_oobo"), "landing page should include the public social footer links")
     try expect(!indexHTML.contains("Final CTA"), "landing page should not expose internal CTA labels to users")
 }
 
@@ -430,9 +426,10 @@ func testLaunchProofAssetsAreWiredAcrossSurfaces() throws {
         "docs/launch-assets.md"
     ]
 
-    try expect(indexHTML.contains("id=\"proof\""), "landing page should expose the proof section")
-    try expect(indexHTML.contains("paper-theme-light.png"), "landing page should include the Paper theme screenshot")
-    try expect(indexHTML.contains("cool-theme-light.png"), "landing page should include the Cool theme screenshot")
+    try expect(indexHTML.contains("The app right now"), "landing page should expose the current-app proof section")
+    try expect(indexHTML.contains("Default light"), "landing page should label the default light capture")
+    try expect(indexHTML.contains("Paper light"), "landing page should label the Paper light capture")
+    try expect(indexHTML.contains("Cool light"), "landing page should label the Cool light capture")
     try expect(readme.contains("screenshots/paper-theme-light.png"), "README should include the Paper theme screenshot")
     try expect(readme.contains("screenshots/cool-theme-light.png"), "README should include the Cool theme screenshot")
 
