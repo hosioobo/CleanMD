@@ -146,6 +146,10 @@ struct PreviewView: NSViewRepresentable {
         body.code-preview {
             max-width: none;
         }
+        body.yaml-preview-mode {
+            max-width: 900px;
+            padding-top: 26px;
+        }
         h1, h2, h3, h4, h5, h6 {
             margin-top: 1.35em;
             margin-bottom: 0.55em;
@@ -183,6 +187,62 @@ struct PreviewView: NSViewRepresentable {
             padding: 0;
             font-size: 0.86em;
             color: inherit;
+        }
+        .yaml-document {
+            border: 1px solid var(--quote-border);
+            border-radius: 14px;
+            background: var(--preview-bg);
+            box-shadow: 0 12px 34px rgba(0, 0, 0, 0.10);
+            overflow: hidden;
+        }
+        .yaml-document-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 13px 17px 11px;
+            border-bottom: 1px solid var(--quote-border);
+            color: var(--quote-text);
+            font-size: 0.78em;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+        }
+        .yaml-document-header::after {
+            content: "settings document";
+            color: var(--quote-text);
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            text-transform: none;
+        }
+        pre.yaml-preview {
+            margin: 0;
+            border-radius: 0;
+            padding: 18px 20px 22px;
+            background: var(--code-block-bg) !important;
+            line-height: 1.64;
+        }
+        pre.yaml-preview code,
+        pre.yaml-preview code.hljs {
+            font-size: 0.9em;
+            color: var(--preview-text);
+        }
+        pre.yaml-preview .hljs-attr {
+            color: var(--h2);
+            font-weight: 650;
+        }
+        pre.yaml-preview .hljs-string,
+        pre.yaml-preview .hljs-number,
+        pre.yaml-preview .hljs-literal {
+            color: var(--link);
+        }
+        pre.yaml-preview .hljs-bullet {
+            color: var(--h3);
+            font-weight: 700;
+        }
+        pre.yaml-preview .hljs-comment {
+            color: var(--quote-text);
+            font-style: italic;
         }
         blockquote {
             border-left: 4px solid var(--quote-border);
@@ -309,7 +369,7 @@ struct PreviewView: NSViewRepresentable {
                     var content = document.getElementById('content');
                     if (!content) return;
                     var mode = String(data.mode || latestRequestedMode || 'markdown');
-                    document.body.classList.toggle('code-preview', mode.indexOf('code:') === 0);
+                    applyPreviewModeClass(mode);
                     content.innerHTML = String(data.html || '');
                     if (mode === 'markdown') {
                         maybeRenderMath(content, latestRequestedText);
@@ -334,6 +394,7 @@ struct PreviewView: NSViewRepresentable {
             var content = document.getElementById('content');
             if (!content) return;
             var html = renderPreviewHtml(mode, text, mainThreadHighlightCache, maxHighlightedCodeCacheEntries);
+            applyPreviewModeClass(mode);
             content.innerHTML = html;
             if (String(mode || 'markdown') === 'markdown') {
                 maybeRenderMath(content, text);
@@ -375,6 +436,13 @@ struct PreviewView: NSViewRepresentable {
 
         function renderMarkdown(text) {
             renderPreview('markdown', text, cleanMDDocumentBaseURL);
+        }
+
+        function applyPreviewModeClass(mode) {
+            if (!document.body) return;
+            var normalized = String(mode || 'markdown');
+            document.body.classList.toggle('code-preview', normalized.indexOf('code:') === 0);
+            document.body.classList.toggle('yaml-preview-mode', normalized === 'code:yaml' || normalized === 'code:yml');
         }
 
         function updateColors(c) {
@@ -580,10 +648,22 @@ struct PreviewView: NSViewRepresentable {
         function renderCodePreviewHtml(language, text, cache, maxEntries) {
             var code = String(text || '');
             var lang = normalizeLanguage(language);
+            if (lang === 'yaml' || lang === 'yml') {
+                return renderYamlPreviewHtml(code, cache, maxEntries);
+            }
             var highlighted = highlightCodeCached(code, lang, cache, maxEntries);
             var className = 'hljs' + (lang ? (' language-' + lang) : '');
             setCodePreviewClass(true);
             return '<pre><code class="' + className + '">' + highlighted + '</code></pre>\\n';
+        }
+
+        function renderYamlPreviewHtml(code, cache, maxEntries) {
+            var highlighted = highlightCodeCached(code, 'yaml', cache, maxEntries);
+            setCodePreviewClass(true);
+            return '<section class="yaml-document">'
+                + '<div class="yaml-document-header">YAML</div>'
+                + '<pre class="yaml-preview"><code class="hljs language-yaml">' + highlighted + '</code></pre>'
+                + '</section>\\n';
         }
 
         function renderMarkdownPreviewHtml(text) {
