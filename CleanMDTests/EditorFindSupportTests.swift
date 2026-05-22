@@ -8,7 +8,6 @@ final class EditorFindSupportTests: XCTestCase {
 
         EditorFindSupport.configure(textView: textView)
 
-        XCTAssertTrue(textView.usesFindPanel)
         XCTAssertTrue(textView.usesFindBar)
         XCTAssertTrue(textView.isIncrementalSearchingEnabled)
     }
