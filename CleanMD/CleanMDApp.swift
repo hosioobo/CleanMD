@@ -6,5 +6,8 @@ struct CleanMDApp: App {
         DocumentGroup(newDocument: MarkdownDocument()) { file in
             ContentView(document: file.$document, fileURL: file.fileURL)
         }
+        .commands {
+            TextEditingCommands()
+        }
     }
 }

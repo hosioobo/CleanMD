@@ -5,16 +5,29 @@ PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 REPO="${GITHUB_REPOSITORY:-hosioobo/CleanMD}"
 VERSION="${1:-$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$PROJECT_DIR/Info.plist")}"
 TAG="v$VERSION"
-RELEASE_NOTES="$PROJECT_DIR/RELEASE_NOTES_v$VERSION.md"
+CHANGELOG="$PROJECT_DIR/CHANGELOG.md"
 ASSET="$PROJECT_DIR/CleanMD-v${VERSION}-macOS.zip"
+TEMP_NOTES="$(mktemp)"
 
 if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
   echo "Error: version must use MAJOR.MINOR.PATCH (example: 0.8.0)"
   exit 1
 fi
 
-if [ ! -f "$RELEASE_NOTES" ]; then
-  echo "Error: missing release notes file: $RELEASE_NOTES"
+if [ ! -f "$CHANGELOG" ]; then
+  echo "Error: missing changelog file: $CHANGELOG"
+  exit 1
+fi
+
+awk -v tag="$TAG" '
+  $0 ~ "^## " tag "([[:space:]]|$)" {capture=1}
+  capture && $0 ~ "^## " && $0 !~ "^## " tag "([[:space:]]|$)" {exit}
+  capture {print}
+' "$CHANGELOG" > "$TEMP_NOTES"
+
+if [ ! -s "$TEMP_NOTES" ]; then
+  echo "Error: CHANGELOG.md does not contain a section for $TAG"
+  rm -f "$TEMP_NOTES"
   exit 1
 fi
 
@@ -39,6 +52,8 @@ gh release create "$TAG" \
   "$ASSET" \
   --repo "$REPO" \
   --title "CleanMD $TAG" \
-  --notes-file "$RELEASE_NOTES"
+  --notes-file "$TEMP_NOTES"
+
+rm -f "$TEMP_NOTES"
 
 echo "✓ GitHub release created: $TAG"

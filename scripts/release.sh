@@ -36,7 +36,6 @@ PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$PROJECT_DIR"
 
 TAG="v$VERSION"
-RELEASE_NOTES="RELEASE_NOTES_v$VERSION.md"
 ZIP_PATH="CleanMD-v${VERSION}-macOS.zip"
 COMMIT_MESSAGE="Release v$VERSION"
 REPO="${GITHUB_REPOSITORY:-hosioobo/CleanMD}"
@@ -44,7 +43,6 @@ REPO="${GITHUB_REPOSITORY:-hosioobo/CleanMD}"
 ALLOWED_DIRTY_PATHS=(
   "Info.plist"
   "CHANGELOG.md"
-  "$RELEASE_NOTES"
   "README.md"
   "VERSIONING.md"
   "scripts/prepare-release.sh"
@@ -115,10 +113,6 @@ if [ "$current_build" != "$BUILD" ]; then
   exit 1
 fi
 
-if [ ! -f "$RELEASE_NOTES" ]; then
-  echo "Error: missing release notes file: $RELEASE_NOTES"
-  exit 1
-fi
 
 if grep -Eq "^## v${VERSION//./\\.}([[:space:]]|$)" CHANGELOG.md; then
   :
@@ -127,10 +121,6 @@ else
   exit 1
 fi
 
-if rg -n "TODO" "$RELEASE_NOTES" >/dev/null 2>&1; then
-  echo "Error: release notes still contain TODO placeholders: $RELEASE_NOTES"
-  exit 1
-fi
 
 if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null 2>&1; then
   echo "Error: local tag already exists: $TAG"

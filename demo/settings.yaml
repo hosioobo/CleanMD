@@ -1,0 +1,13 @@
+theme:
+  preset: Paper
+  editorBackground: "#fbfbfc"
+  previewBackground: "#fffaf1"
+  accent: "#117a5c"
+workspace:
+  root: demo
+  showHistoryTab: true
+  syncScroll: true
+release:
+  channel: public
+  notarized: false
+  download: https://github.com/hosioobo/CleanMD/releases/latest

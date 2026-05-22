@@ -41,6 +41,7 @@ struct EditorView: NSViewRepresentable {
             .paragraphStyle: paragraph,
             .foregroundColor: NSColor(hex: palette.editorText)
         ]
+        EditorFindSupport.configure(textView: textView)
         textView.delegate = context.coordinator
 
         context.coordinator.textView = textView
