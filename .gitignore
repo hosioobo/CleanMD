@@ -6,6 +6,12 @@ CleanMD.app/
 
 # Internal agent guidance
 CLAUDE.md
+AGENTS.md
+
+# Local-only working material
+.local/
+docs/plans/
+docs/assets/comparison/
 
 # Release artifacts
 *.zip

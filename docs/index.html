@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>CleanMD | Native macOS Markdown editor</title>
+    <meta
+        name="description"
+        content="CleanMD is a native macOS Markdown editor for local files, split preview, and a stable download route to the latest release."
+    >
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="./assets/brand/app-icon.png">
+    <link rel="apple-touch-icon" href="./assets/brand/app-icon.png">
+    <link rel="stylesheet" href="./styles.css">
+    <script defer src="./site.js"></script>
+</head>
+<body class="site-shell" data-site-page="home" data-site-event="page_view">
+    <div class="page-orb page-orb-a" aria-hidden="true"></div>
+    <div class="page-orb page-orb-b" aria-hidden="true"></div>
+
+    <header class="site-header">
+        <a class="brand" href="./" aria-label="CleanMD home">
+            <img class="brand-mark" src="./assets/brand/app-icon.png" alt="" width="34" height="34">
+            <span>CleanMD</span>
+        </a>
+        <nav class="header-links" aria-label="Primary">
+            <a href="#engine">Engine</a>
+            <a href="#current-captures">Captures</a>
+            <a href="#install-trust">Install</a>
+            <a href="https://github.com/hosioobo/CleanMD" data-track-click="repo">GitHub</a>
+        </nav>
+        <a class="button button-primary header-cta" href="./download/?ref=nav" data-track-click="nav_download_click">Download</a>
+    </header>
+
+    <main class="site-main">
+        <section class="hero" aria-labelledby="hero-title">
+            <div class="hero-copy">
+                <p class="eyebrow">Native macOS Markdown engine</p>
+                <h1 id="hero-title">Write locally. Preview instantly. Ship clean Markdown.</h1>
+                <p class="lede">
+                    CleanMD keeps source files, rendered output, and folder navigation in one focused Mac workspace — no vault lock-in, no hidden document model.
+                </p>
+                <div class="hero-actions">
+                    <a
+                        id="primary-download"
+                        class="button button-primary"
+                        href="./download/?ref=hero"
+                        data-track-click="hero_download_click"
+                    >Download for macOS</a>
+                    <a class="button button-secondary" href="#current-captures">See current captures</a>
+                </div>
+                <ul class="hero-signals" aria-label="CleanMD signals">
+                    <li>Local files</li>
+                    <li>Split preview</li>
+                    <li>GitHub releases</li>
+                    <li>macOS 13+</li>
+                </ul>
+            </div>
+
+            <div class="hero-visual-wrap" aria-label="CleanMD interface preview">
+                <div class="neural-stage panel">
+                    <div class="stage-nav" aria-hidden="true">
+                        <span></span><span></span><span></span>
+                        <strong>overview.md</strong>
+                    </div>
+                    <a
+                        id="hero-proof"
+                        class="hero-proof"
+                        href="./assets/screenshots/demo-folder-overview.png"
+                        target="_blank"
+                        rel="noreferrer"
+                        data-track-click="screenshot_open"
+                    >
+                        <img
+                            src="./assets/screenshots/demo-folder-overview.png"
+                            alt="CleanMD showing the demo folder with Markdown and YAML files"
+                            loading="eager"
+                        >
+                    </a>
+                    <div class="stage-wave" aria-hidden="true">
+                        <span></span><span></span><span></span><span></span><span></span>
+                    </div>
+                </div>
+                <p class="hero-visual-note">
+                    Current app capture from the repo-local <code>demo/</code> folder.
+                </p>
+            </div>
+
+            <aside class="hero-ledger" aria-label="Release proof">
+                <article class="ledger-item">
+                    <span>Code</span>
+                    <strong>Public Swift app</strong>
+                    <a href="https://github.com/hosioobo/CleanMD" data-track-click="repo_inspect">Inspect repository</a>
+                </article>
+                <article class="ledger-item">
+                    <span>Release</span>
+                    <strong>Versioned GitHub zips</strong>
+                    <a href="https://github.com/hosioobo/CleanMD/releases/latest" data-track-click="release_outbound_click">Latest release</a>
+                </article>
+                <article class="ledger-item">
+                    <span>Reality</span>
+                    <strong>Ad-hoc signed, not notarized yet</strong>
+                    <a href="#install-trust">First-open steps</a>
+                </article>
+            </aside>
+        </section>
+
+        <section id="engine" class="engine-section">
+            <article class="message-card panel feature-lead">
+                <p class="eyebrow">Focused editor loop</p>
+                <h2>Source and rendered review stay visible together.</h2>
+                <p class="body-copy">
+                    Open ordinary folders, edit Markdown directly, and keep the preview beside the text. CleanMD is built for READMEs, specs, release notes, and local technical docs.
+                </p>
+            </article>
+            <div class="feature-stack">
+                <article class="message-card panel">
+                    <p class="eyebrow">Navigation</p>
+                    <h3>Folders remain folders.</h3>
+                    <p class="body-copy">The file explorer and history tab keep movement local and inspectable.</p>
+                </article>
+                <article class="message-card panel">
+                    <p class="eyebrow">Rendering</p>
+                    <h3>Technical Markdown holds shape.</h3>
+                    <p class="body-copy">Code fences, tables, links, math, and YAML render without sending work through a cloud editor.</p>
+                </article>
+            </div>
+        </section>
+
+        <section id="current-captures" class="technical-proof panel">
+            <div class="panel-heading split-heading">
+                <div>
+                    <p class="eyebrow">Current captures</p>
+                    <h2>What the app looks like right now.</h2>
+                </div>
+                <p class="body-copy technical-proof-copy">
+                    These images come from the current app. The demo capture uses the repo-local <code>demo/</code> folder so the file list is reproducible.
+                </p>
+            </div>
+            <div class="proof-gallery">
+                <a class="technical-proof-link" href="./assets/screenshots/light-mode.png" target="_blank" rel="noreferrer" data-track-click="screenshot_open">
+                    <img src="./assets/screenshots/light-mode.png" alt="CleanMD light mode with file explorer, editor, and preview visible" loading="lazy">
+                    <span>Light mode</span>
+                </a>
+                <a class="technical-proof-link" href="./assets/screenshots/dark-mode.png" target="_blank" rel="noreferrer" data-track-click="screenshot_open">
+                    <img src="./assets/screenshots/dark-mode.png" alt="CleanMD dark mode with editor and preview visible" loading="lazy">
+                    <span>Dark mode</span>
+                </a>
+                <a class="technical-proof-link" href="./assets/screenshots/demo-folder-overview.png" target="_blank" rel="noreferrer" data-track-click="screenshot_open">
+                    <img src="./assets/screenshots/demo-folder-overview.png" alt="CleanMD showing overview.md with neighboring YAML and Markdown files in the demo folder" loading="lazy">
+                    <span>Demo folder</span>
+                </a>
+            </div>
+            <div class="demo-proof panel">
+                <div class="demo-proof-copy">
+                    <p class="eyebrow">Short demo</p>
+                    <h3>Three real app states from repo-local demo files.</h3>
+                    <p class="body-copy">
+                        The sequence is assembled from <code>demo/overview.md</code>, <code>demo/settings.yaml</code>, and <code>demo/technical-notes.md</code>.
+                    </p>
+                    <a class="button button-secondary" href="./assets/demo/cleanmd-demo-folder.mp4">Download the MP4</a>
+                </div>
+                <video controls preload="metadata" poster="./assets/launch/demo-poster.png">
+                    <source src="./assets/demo/cleanmd-demo-folder.mp4" type="video/mp4">
+                    <a href="./assets/demo/cleanmd-demo-folder.mp4">Download the short demo</a>
+                </video>
+            </div>
+        </section>
+
+        <section id="comparison-section" class="comparison-section panel">
+            <div class="panel-heading split-heading">
+                <div>
+                    <p class="eyebrow">Positioning</p>
+                    <h2>Lighter than a vault. More inspectable than a drafting canvas.</h2>
+                </div>
+                <p class="body-copy">CleanMD is for local Markdown editing where the file system remains the source of truth.</p>
+            </div>
+            <div class="comparison-grid">
+                <article class="comparison-card">
+                    <h3>Instead of Obsidian</h3>
+                    <p>Use CleanMD when you want Markdown editing and rendered review without a vault and plugin layer.</p>
+                </article>
+                <article class="comparison-card">
+                    <h3>Instead of iA Writer</h3>
+                    <p>Use CleanMD when source and output need to stay visible together.</p>
+                </article>
+                <article class="comparison-card">
+                    <h3>Instead of Typora</h3>
+                    <p>Use CleanMD when sidebar navigation and a native split workspace matter.</p>
+                </article>
+            </div>
+        </section>
+
+        <section id="install-trust" class="trust-section panel">
+            <div class="panel-heading split-heading">
+                <div>
+                    <p class="eyebrow">Install trust</p>
+                    <h2>Download from GitHub, with the first-open caveat spelled out.</h2>
+                </div>
+                <a class="button button-primary" href="./download/?ref=install" data-track-click="install_download_click">Download for macOS</a>
+            </div>
+            <div class="trust-grid">
+                <article class="trust-block">
+                    <h3>Download with eyes open</h3>
+                    <p>CleanMD is currently released through GitHub and is <strong>not notarized yet</strong>. Builds are packaged and ad-hoc signed.</p>
+                </article>
+                <article class="trust-block">
+                    <h3>First-open steps</h3>
+                    <ol class="steps">
+                        <li>Download and unzip <code>CleanMD.app</code>.</li>
+                        <li>Move it to <code>Applications</code> if desired.</li>
+                        <li>If Gatekeeper pauses launch, Control-click, choose <code>Open</code>, and confirm once.</li>
+                    </ol>
+                </article>
+                <article class="trust-block">
+                    <h3>Verify first</h3>
+                    <ul class="trust-links">
+                        <li><a href="https://github.com/hosioobo/CleanMD/releases/latest" data-track-click="release_outbound_click">Inspect release notes</a></li>
+                        <li><a href="https://github.com/hosioobo/CleanMD" data-track-click="repo_inspect">Browse repository</a></li>
+                        <li><a href="./assets/demo/cleanmd-demo-folder.mp4">Download demo MP4</a></li>
+                    </ul>
+                </article>
+            </div>
+        </section>
+    </main>
+</body>
+</html>
