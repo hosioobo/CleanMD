@@ -801,8 +801,75 @@ struct PreviewView: NSViewRepresentable {
             return null;
         }
 
+        var yamlChildIndent = 2;
+
         function parseYamlReadable(code) {
             var lines = String(code || '').replace(/\\r\\n?/g, '\\n').split('\\n');
+
+            function childIndent(indent) {
+                return indent + yamlChildIndent;
+            }
+
+            function parseYamlPairNode(pair, index, indent) {
+                if (pair.value === '|' || pair.value === '>') {
+                    var block = collectYamlBlock(index, childIndent(indent));
+                    return {
+                        node: { type: 'field', key: pair.key, value: block.value, block: true },
+                        index: block.index
+                    };
+                }
+                if (pair.value) {
+                    return {
+                        node: { type: 'field', key: pair.key, value: pair.value },
+                        index: index
+                    };
+                }
+                var nested = parseBlock(index, childIndent(indent));
+                return {
+                    node: { type: 'section', key: pair.key, children: nested.nodes },
+                    index: nested.index
+                };
+            }
+
+            function appendNestedYamlChildren(itemNode, index, indent) {
+                if (index >= lines.length || countIndent(lines[index]) <= indent) {
+                    return { node: itemNode, index: index };
+                }
+                var nested = parseBlock(index, childIndent(indent));
+                itemNode.children = itemNode.children.concat(nested.nodes);
+                return { node: itemNode, index: nested.index };
+            }
+
+            function parseListItem(itemText, index, indent) {
+                var itemNode = { type: 'listItem', value: '', children: [] };
+                var itemPair = splitYamlKeyValue(itemText);
+                if (itemPair && itemPair.key) {
+                    var parsedPair = parseYamlPairNode(itemPair, index, indent);
+                    itemNode.children.push(parsedPair.node);
+                    index = parsedPair.index;
+                } else if (itemText) {
+                    itemNode.value = itemText;
+                }
+                return appendNestedYamlChildren(itemNode, index, indent);
+            }
+
+            function parseCurrentLine(trimmed, index, indent) {
+                if (trimmed === '---' || trimmed === '...') {
+                    return { node: null, index: index + 1 };
+                }
+                if (trimmed[0] === '#') {
+                    return { node: { type: 'comment', value: trimmed }, index: index + 1 };
+                }
+                if (trimmed.indexOf('- ') === 0 || trimmed === '-') {
+                    var itemText = trimmed === '-' ? '' : trimmed.slice(2).trim();
+                    return parseListItem(itemText, index + 1, indent);
+                }
+                var pair = splitYamlKeyValue(trimmed);
+                if (pair && pair.key) {
+                    return parseYamlPairNode(pair, index + 1, indent);
+                }
+                return { node: { type: 'text', value: trimmed }, index: index + 1 };
+            }
 
             function parseBlock(index, indent) {
                 var nodes = [];
@@ -817,61 +884,9 @@ struct PreviewView: NSViewRepresentable {
                         continue;
                     }
 
-                    var trimmed = raw.trim();
-                    if (trimmed === '---' || trimmed === '...') { index++; continue; }
-                    if (trimmed[0] === '#') {
-                        nodes.push({ type: 'comment', value: trimmed });
-                        index++;
-                        continue;
-                    }
-
-                    if (trimmed.indexOf('- ') === 0 || trimmed === '-') {
-                        var itemText = trimmed === '-' ? '' : trimmed.slice(2).trim();
-                        index++;
-                        var itemNode = { type: 'listItem', value: '', children: [] };
-                        var itemPair = splitYamlKeyValue(itemText);
-                        if (itemPair && itemPair.key) {
-                            if (itemPair.value === '|' || itemPair.value === '>') {
-                                var blockResult = collectYamlBlock(index, indent + 2);
-                                itemNode.children.push({ type: 'field', key: itemPair.key, value: blockResult.value, block: true });
-                                index = blockResult.index;
-                            } else if (itemPair.value) {
-                                itemNode.children.push({ type: 'field', key: itemPair.key, value: itemPair.value });
-                            } else {
-                                var nestedPair = parseBlock(index, indent + 2);
-                                itemNode.children.push({ type: 'section', key: itemPair.key, children: nestedPair.nodes });
-                                index = nestedPair.index;
-                            }
-                        } else if (itemText) {
-                            itemNode.value = itemText;
-                        }
-                        if (index < lines.length && countIndent(lines[index]) > indent) {
-                            var nestedList = parseBlock(index, indent + 2);
-                            itemNode.children = itemNode.children.concat(nestedList.nodes);
-                            index = nestedList.index;
-                        }
-                        nodes.push(itemNode);
-                        continue;
-                    }
-
-                    var pair = splitYamlKeyValue(trimmed);
-                    if (pair && pair.key) {
-                        index++;
-                        if (pair.value === '|' || pair.value === '>') {
-                            var collected = collectYamlBlock(index, indent + 2);
-                            nodes.push({ type: 'field', key: pair.key, value: collected.value, block: true });
-                            index = collected.index;
-                        } else if (pair.value) {
-                            nodes.push({ type: 'field', key: pair.key, value: pair.value });
-                        } else {
-                            var nested = parseBlock(index, indent + 2);
-                            nodes.push({ type: 'section', key: pair.key, children: nested.nodes });
-                            index = nested.index;
-                        }
-                    } else {
-                        nodes.push({ type: 'text', value: trimmed });
-                        index++;
-                    }
+                    var parsed = parseCurrentLine(raw.trim(), index, indent);
+                    if (parsed.node) nodes.push(parsed.node);
+                    index = parsed.index;
                 }
                 return { nodes: nodes, index: index };
             }
@@ -914,7 +929,33 @@ struct PreviewView: NSViewRepresentable {
             return escapeHtml(unquoted);
         }
 
-        function renderYamlNodes(nodes, depth) {
+        function renderYamlSection(node) {
+            return '<section class="yaml-section-card">'
+                + '<div class="yaml-section-title">' + escapeHtml(node.key) + '</div>'
+                + '<div class="yaml-section-body">' + renderYamlNodes(node.children || []) + '</div>'
+                + '</section>';
+        }
+
+        function renderYamlField(node) {
+            var valueHtml = node.block
+                ? '<div class="yaml-block-value">' + escapeHtml(node.value) + '</div>'
+                : renderYamlScalar(node.value);
+            return '<div class="yaml-field-row">'
+                + '<div class="yaml-field-key">' + escapeHtml(node.key) + '</div>'
+                + '<div class="yaml-field-value">' + valueHtml + '</div>'
+                + '</div>';
+        }
+
+        function renderYamlListItem(node, index) {
+            var body = node.value ? renderYamlScalar(node.value) : renderYamlNodes(node.children || []);
+            return '<li class="yaml-list-item"><span class="yaml-list-marker">' + index + '</span><div class="yaml-list-body">' + body + '</div></li>';
+        }
+
+        function renderYamlTextBlock(value) {
+            return '<div class="yaml-block-value">' + escapeHtml(value) + '</div>';
+        }
+
+        function renderYamlNodes(nodes) {
             var html = '';
             var listBuffer = [];
             function flushList() {
@@ -922,28 +963,18 @@ struct PreviewView: NSViewRepresentable {
                 html += '<ol class="yaml-list">' + listBuffer.join('') + '</ol>';
                 listBuffer = [];
             }
-            nodes.forEach(function(node, index) {
+            nodes.forEach(function(node) {
                 if (node.type !== 'listItem') flushList();
                 if (node.type === 'section') {
-                    html += '<section class="yaml-section-card">'
-                        + '<div class="yaml-section-title">' + escapeHtml(node.key) + '</div>'
-                        + '<div class="yaml-section-body">' + renderYamlNodes(node.children || [], depth + 1) + '</div>'
-                        + '</section>';
+                    html += renderYamlSection(node);
                 } else if (node.type === 'field') {
-                    var valueHtml = node.block
-                        ? '<div class="yaml-block-value">' + escapeHtml(node.value) + '</div>'
-                        : renderYamlScalar(node.value);
-                    html += '<div class="yaml-field-row">'
-                        + '<div class="yaml-field-key">' + escapeHtml(node.key) + '</div>'
-                        + '<div class="yaml-field-value">' + valueHtml + '</div>'
-                        + '</div>';
+                    html += renderYamlField(node);
                 } else if (node.type === 'comment') {
                     html += '<div class="yaml-comment-row">' + escapeHtml(node.value) + '</div>';
                 } else if (node.type === 'listItem') {
-                    var body = node.value ? renderYamlScalar(node.value) : renderYamlNodes(node.children || [], depth + 1);
-                    listBuffer.push('<li class="yaml-list-item"><span class="yaml-list-marker">' + (listBuffer.length + 1) + '</span><div class="yaml-list-body">' + body + '</div></li>');
+                    listBuffer.push(renderYamlListItem(node, listBuffer.length + 1));
                 } else if (node.type === 'text') {
-                    html += '<div class="yaml-block-value">' + escapeHtml(node.value) + '</div>';
+                    html += renderYamlTextBlock(node.value);
                 }
             });
             flushList();
