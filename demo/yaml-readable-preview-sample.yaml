@@ -1,0 +1,20 @@
+# CleanMD YAML Readable View sample
+app:
+  name: CleanMD
+  enabled: true
+  release_url: https://github.com/hosioobo/CleanMD/releases/tag/v0.11.0
+  very_long_token: this-is-a-deliberately-long-unbroken-value-this-is-a-deliberately-long-unbroken-value-this-is-a-deliberately-long-unbroken-value-this-is-a-deliberately-long-unbroken-value-this-is-a-deliberately-long-unbroken-value
+  notes: |
+    This block is intentionally long enough to prove that the readable YAML preview wraps instead of forcing horizontal scrolling.
+    A second line stays inside its card.
+servers:
+  - name: primary
+    host: primary.cleanmd.local
+    port: 443
+  - name: backup
+    host: backup.cleanmd.local
+    port: 8443
+features:
+  markdown_preview: true
+  yaml_readable_view: true
+  no_horizontal_scroll: true

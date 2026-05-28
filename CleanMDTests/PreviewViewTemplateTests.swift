@@ -2,13 +2,47 @@ import XCTest
 @testable import CleanMD
 
 final class PreviewViewTemplateTests: XCTestCase {
-    func testYamlCodePreviewUsesDedicatedDocumentFrame() {
+    func testYamlCodePreviewUsesReadableDocumentFrame() {
         let html = PreviewView.htmlTemplate(resourceURL: nil)
 
         XCTAssertTrue(html.contains("yaml-preview-mode"))
-        XCTAssertTrue(html.contains("renderYamlPreviewHtml"))
-        XCTAssertTrue(html.contains("yaml-document-header"))
-        XCTAssertTrue(html.contains("YAML</div>"))
-        XCTAssertTrue(html.contains("pre.yaml-preview .hljs-attr"))
+        XCTAssertTrue(html.contains("renderYamlReadableHtml"))
+        XCTAssertTrue(html.contains("yaml-readable-document"))
+        XCTAssertTrue(html.contains("yaml-section-card"))
+        XCTAssertTrue(html.contains("yaml-field-key"))
+        XCTAssertTrue(html.contains("Readable View"))
+    }
+
+    func testPreviewKeepsFallbackRenderersWhenWebKitBlocksBundledAssets() {
+        let html = PreviewView.htmlTemplate(resourceURL: nil)
+
+        XCTAssertTrue(html.contains("if (typeof hljs === 'undefined')"))
+        XCTAssertTrue(html.contains("if (typeof marked === 'undefined')"))
+        XCTAssertTrue(html.contains("if (typeof renderMathInElement === 'undefined')"))
+    }
+
+    func testYamlReadableRendererEscapesBackslashCheckAsValidJavaScript() {
+        let html = PreviewView.htmlTemplate(resourceURL: nil)
+
+        XCTAssertTrue(html.contains("source[i - 1] !== '\\\\'"))
+        XCTAssertFalse(html.contains("source[i - 1] !== '\\'"))
+    }
+
+    func testYamlReadableRendererKeepsRegexAndNewlineEscapesAsJavaScriptSource() {
+        let html = PreviewView.htmlTemplate(resourceURL: nil)
+
+        XCTAssertTrue(html.contains("replace(/\\\\r\\\\n?/g, '\\\\n').split('\\\\n')"))
+        XCTAssertTrue(html.contains("blockLines.join('\\\\n').replace(/\\\\n+$/g, '')"))
+        XCTAssertTrue(html.contains("</code></pre>\\\\n"))
+        XCTAssertTrue(html.contains("</section>\\\\n"))
+    }
+
+    func testMainThreadPreviewFallsBackToVisibleRawTextOnRendererFailure() {
+        let html = PreviewView.htmlTemplate(resourceURL: nil)
+
+        XCTAssertTrue(html.contains("try {"))
+        XCTAssertTrue(html.contains("catch (err)"))
+        XCTAssertTrue(html.contains("Preview renderer fallback:"))
+        XCTAssertTrue(html.contains("escapeHtml(String(text || ''))"))
     }
 }

@@ -149,6 +149,7 @@ struct PreviewView: NSViewRepresentable {
         body.yaml-preview-mode {
             max-width: 900px;
             padding-top: 26px;
+            overflow-x: hidden;
         }
         h1, h2, h3, h4, h5, h6 {
             margin-top: 1.35em;
@@ -188,61 +189,152 @@ struct PreviewView: NSViewRepresentable {
             font-size: 0.86em;
             color: inherit;
         }
-        .yaml-document {
-            border: 1px solid var(--quote-border);
-            border-radius: 14px;
-            background: var(--preview-bg);
-            box-shadow: 0 12px 34px rgba(0, 0, 0, 0.10);
-            overflow: hidden;
+        .yaml-readable-document {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            max-width: 100%;
+            overflow-x: hidden;
         }
-        .yaml-document-header {
+        .yaml-readable-header {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 14px;
+            padding: 3px 1px 6px;
+            border-bottom: 1px solid var(--quote-border);
+        }
+        .yaml-readable-title {
+            color: var(--h1);
+            font-size: 1.28em;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+        }
+        .yaml-readable-badge {
+            color: var(--quote-text);
+            font-size: 0.75em;
+            font-weight: 700;
+            letter-spacing: 0.11em;
+            text-transform: uppercase;
+        }
+        .yaml-section-card,
+        .yaml-field-row,
+        .yaml-list-item,
+        .yaml-block-value,
+        .yaml-comment-row {
+            border: 1px solid var(--quote-border);
+            border-radius: 12px;
+            background: var(--preview-bg);
+        }
+        .yaml-section-card {
+            overflow: hidden;
+            box-shadow: 0 10px 28px rgba(0, 0, 0, 0.08);
+        }
+        .yaml-section-title {
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 12px;
-            padding: 13px 17px 11px;
+            padding: 11px 15px;
             border-bottom: 1px solid var(--quote-border);
-            color: var(--quote-text);
-            font-size: 0.78em;
+            color: var(--h2);
+            background: var(--code-block-bg);
+            font-size: 0.98em;
             font-weight: 700;
-            letter-spacing: 0.12em;
+        }
+        .yaml-section-title::after {
+            content: "section";
+            color: var(--quote-text);
+            font-size: 0.72em;
+            font-weight: 700;
+            letter-spacing: 0.08em;
             text-transform: uppercase;
         }
-        .yaml-document-header::after {
-            content: "settings document";
-            color: var(--quote-text);
-            font-weight: 600;
-            letter-spacing: 0.04em;
-            text-transform: none;
+        .yaml-section-body {
+            display: flex;
+            flex-direction: column;
+            gap: 9px;
+            padding: 12px;
         }
-        pre.yaml-preview {
-            margin: 0;
-            border-radius: 0;
-            padding: 18px 20px 22px;
-            background: var(--code-block-bg) !important;
-            line-height: 1.64;
+        .yaml-field-row {
+            display: grid;
+            grid-template-columns: minmax(120px, 210px) minmax(0, 1fr);
+            gap: 12px;
+            padding: 9px 11px;
+            align-items: start;
+            box-shadow: none;
         }
-        pre.yaml-preview code,
-        pre.yaml-preview code.hljs {
-            font-size: 0.9em;
-            color: var(--preview-text);
-        }
-        pre.yaml-preview .hljs-attr {
-            color: var(--h2);
-            font-weight: 650;
-        }
-        pre.yaml-preview .hljs-string,
-        pre.yaml-preview .hljs-number,
-        pre.yaml-preview .hljs-literal {
-            color: var(--link);
-        }
-        pre.yaml-preview .hljs-bullet {
+        .yaml-field-key {
             color: var(--h3);
+            font-family: "SF Mono", Menlo, monospace;
+            font-size: 0.82em;
             font-weight: 700;
+            overflow-wrap: anywhere;
         }
-        pre.yaml-preview .hljs-comment {
+        .yaml-field-value {
+            color: var(--preview-text);
+            min-width: 0;
+            overflow-wrap: anywhere;
+        }
+        .yaml-scalar-muted {
             color: var(--quote-text);
             font-style: italic;
+        }
+        .yaml-scalar-number,
+        .yaml-scalar-bool {
+            color: var(--link);
+            font-family: "SF Mono", Menlo, monospace;
+            font-size: 0.9em;
+        }
+        .yaml-link-value {
+            color: var(--link);
+        }
+        .yaml-nested {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .yaml-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+        .yaml-list-item {
+            display: grid;
+            grid-template-columns: 28px minmax(0, 1fr);
+            gap: 10px;
+            padding: 9px 11px;
+        }
+        .yaml-list-marker {
+            color: var(--quote-text);
+            font-family: "SF Mono", Menlo, monospace;
+            font-size: 0.78em;
+            font-weight: 700;
+            text-align: right;
+        }
+        .yaml-block-value {
+            padding: 10px 12px;
+            background: var(--code-block-bg);
+            color: var(--preview-text);
+            font-family: "SF Mono", Menlo, monospace;
+            font-size: 0.86em;
+            line-height: 1.58;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+        }
+        .yaml-comment-row {
+            padding: 8px 11px;
+            color: var(--quote-text);
+            font-size: 0.9em;
+            font-style: italic;
+            background: var(--code-block-bg);
+        }
+        .yaml-raw-fallback {
+            margin: 0;
+            border: 1px solid var(--quote-border);
         }
         blockquote {
             border-left: 4px solid var(--quote-border);
@@ -286,6 +378,25 @@ struct PreviewView: NSViewRepresentable {
         var localFileScheme = \(String(reflecting: localFileScheme));
         var cleanMDDocumentBaseURL = null;
         \(sharedRendererSource)
+
+        if (typeof hljs === 'undefined') {
+            var hljs = {
+                getLanguage: function() { return false; },
+                highlight: function(code) { return { value: escapeHtml(code) }; },
+                highlightAuto: function(code) { return { value: escapeHtml(code) }; }
+            };
+        }
+
+        if (typeof marked === 'undefined') {
+            var marked = {
+                use: function() {},
+                parse: function(text) { return '<pre><code>' + escapeHtml(text) + '</code></pre>'; }
+            };
+        }
+
+        if (typeof renderMathInElement === 'undefined') {
+            function renderMathInElement() {}
+        }
 
         function hasSupportedMathDelimiters(text) {
             return text.indexOf('$$') !== -1 ||
@@ -393,11 +504,21 @@ struct PreviewView: NSViewRepresentable {
         function renderWithMainThreadPreview(mode, text) {
             var content = document.getElementById('content');
             if (!content) return;
-            var html = renderPreviewHtml(mode, text, mainThreadHighlightCache, maxHighlightedCodeCacheEntries);
-            applyPreviewModeClass(mode);
-            content.innerHTML = html;
-            if (String(mode || 'markdown') === 'markdown') {
-                maybeRenderMath(content, text);
+            var normalizedMode = String(mode || 'markdown');
+            try {
+                var html = renderPreviewHtml(normalizedMode, text, mainThreadHighlightCache, maxHighlightedCodeCacheEntries);
+                applyPreviewModeClass(normalizedMode);
+                content.innerHTML = html;
+                if (normalizedMode === 'markdown') {
+                    maybeRenderMath(content, text);
+                }
+            } catch (err) {
+                applyPreviewModeClass(normalizedMode);
+                var fallbackLang = normalizedMode.indexOf('code:') === 0 ? normalizeLanguage(normalizedMode.slice(5)) : '';
+                var fallbackClass = 'hljs' + (fallbackLang ? (' language-' + fallbackLang) : '');
+                var message = err && err.message ? String(err.message) : String(err || 'Render failed');
+                content.innerHTML = '<pre class="yaml-raw-fallback"><code class="' + fallbackClass + '">' + escapeHtml(String(text || '')) + '</code></pre>'
+                    + '<div class="yaml-comment-row">Preview renderer fallback: ' + escapeHtml(message) + '</div>';
             }
         }
 
@@ -649,7 +770,7 @@ struct PreviewView: NSViewRepresentable {
             var code = String(text || '');
             var lang = normalizeLanguage(language);
             if (lang === 'yaml' || lang === 'yml') {
-                return renderYamlPreviewHtml(code, cache, maxEntries);
+                return renderYamlReadableHtml(code, cache, maxEntries);
             }
             var highlighted = highlightCodeCached(code, lang, cache, maxEntries);
             var className = 'hljs' + (lang ? (' language-' + lang) : '');
@@ -657,12 +778,188 @@ struct PreviewView: NSViewRepresentable {
             return '<pre><code class="' + className + '">' + highlighted + '</code></pre>\\n';
         }
 
-        function renderYamlPreviewHtml(code, cache, maxEntries) {
-            var highlighted = highlightCodeCached(code, 'yaml', cache, maxEntries);
+        function countIndent(line) {
+            var match = String(line || '').match(/^ */);
+            return match ? match[0].length : 0;
+        }
+
+        function splitYamlKeyValue(text) {
+            var source = String(text || '');
+            var inSingle = false;
+            var inDouble = false;
+            for (var i = 0; i < source.length; i++) {
+                var ch = source[i];
+                if (ch === "'" && !inDouble) inSingle = !inSingle;
+                if (ch === '"' && !inSingle && source[i - 1] !== '\\\\') inDouble = !inDouble;
+                if (ch === ':' && !inSingle && !inDouble) {
+                    var next = source[i + 1];
+                    if (next === undefined || next === ' ' || next === '\t') {
+                        return { key: source.slice(0, i).trim(), value: source.slice(i + 1).trim() };
+                    }
+                }
+            }
+            return null;
+        }
+
+        function parseYamlReadable(code) {
+            var lines = String(code || '').replace(/\\r\\n?/g, '\\n').split('\\n');
+
+            function parseBlock(index, indent) {
+                var nodes = [];
+                while (index < lines.length) {
+                    var raw = lines[index];
+                    if (!raw.trim()) { index++; continue; }
+                    var currentIndent = countIndent(raw);
+                    if (currentIndent < indent) break;
+                    if (currentIndent > indent) {
+                        nodes.push({ type: 'text', value: raw.trim() });
+                        index++;
+                        continue;
+                    }
+
+                    var trimmed = raw.trim();
+                    if (trimmed === '---' || trimmed === '...') { index++; continue; }
+                    if (trimmed[0] === '#') {
+                        nodes.push({ type: 'comment', value: trimmed });
+                        index++;
+                        continue;
+                    }
+
+                    if (trimmed.indexOf('- ') === 0 || trimmed === '-') {
+                        var itemText = trimmed === '-' ? '' : trimmed.slice(2).trim();
+                        index++;
+                        var itemNode = { type: 'listItem', value: '', children: [] };
+                        var itemPair = splitYamlKeyValue(itemText);
+                        if (itemPair && itemPair.key) {
+                            if (itemPair.value === '|' || itemPair.value === '>') {
+                                var blockResult = collectYamlBlock(index, indent + 2);
+                                itemNode.children.push({ type: 'field', key: itemPair.key, value: blockResult.value, block: true });
+                                index = blockResult.index;
+                            } else if (itemPair.value) {
+                                itemNode.children.push({ type: 'field', key: itemPair.key, value: itemPair.value });
+                            } else {
+                                var nestedPair = parseBlock(index, indent + 2);
+                                itemNode.children.push({ type: 'section', key: itemPair.key, children: nestedPair.nodes });
+                                index = nestedPair.index;
+                            }
+                        } else if (itemText) {
+                            itemNode.value = itemText;
+                        }
+                        if (index < lines.length && countIndent(lines[index]) > indent) {
+                            var nestedList = parseBlock(index, indent + 2);
+                            itemNode.children = itemNode.children.concat(nestedList.nodes);
+                            index = nestedList.index;
+                        }
+                        nodes.push(itemNode);
+                        continue;
+                    }
+
+                    var pair = splitYamlKeyValue(trimmed);
+                    if (pair && pair.key) {
+                        index++;
+                        if (pair.value === '|' || pair.value === '>') {
+                            var collected = collectYamlBlock(index, indent + 2);
+                            nodes.push({ type: 'field', key: pair.key, value: collected.value, block: true });
+                            index = collected.index;
+                        } else if (pair.value) {
+                            nodes.push({ type: 'field', key: pair.key, value: pair.value });
+                        } else {
+                            var nested = parseBlock(index, indent + 2);
+                            nodes.push({ type: 'section', key: pair.key, children: nested.nodes });
+                            index = nested.index;
+                        }
+                    } else {
+                        nodes.push({ type: 'text', value: trimmed });
+                        index++;
+                    }
+                }
+                return { nodes: nodes, index: index };
+            }
+
+            function collectYamlBlock(index, indent) {
+                var blockLines = [];
+                while (index < lines.length) {
+                    var raw = lines[index];
+                    if (raw.trim() && countIndent(raw) < indent) break;
+                    blockLines.push(raw.slice(Math.min(indent, countIndent(raw))));
+                    index++;
+                }
+                return { value: blockLines.join('\\n').replace(/\\n+$/g, ''), index: index };
+            }
+
+            return parseBlock(0, 0).nodes;
+        }
+
+        function renderYamlScalar(value) {
+            var raw = String(value || '').trim();
+            if (!raw || raw === 'null' || raw === '~') {
+                return '<span class="yaml-scalar-muted">empty</span>';
+            }
+            var unquoted = raw;
+            if ((unquoted[0] === '"' && unquoted[unquoted.length - 1] === '"') ||
+                (unquoted[0] === "'" && unquoted[unquoted.length - 1] === "'")) {
+                unquoted = unquoted.slice(1, -1);
+            }
+            var lower = unquoted.toLowerCase();
+            if (lower === 'true' || lower === 'false' || lower === 'yes' || lower === 'no') {
+                return '<span class="yaml-scalar-bool">' + escapeHtml(unquoted) + '</span>';
+            }
+            if (unquoted !== '' && !isNaN(Number(unquoted))) {
+                return '<span class="yaml-scalar-number">' + escapeHtml(unquoted) + '</span>';
+            }
+            if (lower.indexOf('http://') === 0 || lower.indexOf('https://') === 0) {
+                var href = sanitizeLinkHref(unquoted);
+                if (href) return '<a class="yaml-link-value" href="' + escapeAttribute(href) + '">' + escapeHtml(unquoted) + '</a>';
+            }
+            return escapeHtml(unquoted);
+        }
+
+        function renderYamlNodes(nodes, depth) {
+            var html = '';
+            var listBuffer = [];
+            function flushList() {
+                if (!listBuffer.length) return;
+                html += '<ol class="yaml-list">' + listBuffer.join('') + '</ol>';
+                listBuffer = [];
+            }
+            nodes.forEach(function(node, index) {
+                if (node.type !== 'listItem') flushList();
+                if (node.type === 'section') {
+                    html += '<section class="yaml-section-card">'
+                        + '<div class="yaml-section-title">' + escapeHtml(node.key) + '</div>'
+                        + '<div class="yaml-section-body">' + renderYamlNodes(node.children || [], depth + 1) + '</div>'
+                        + '</section>';
+                } else if (node.type === 'field') {
+                    var valueHtml = node.block
+                        ? '<div class="yaml-block-value">' + escapeHtml(node.value) + '</div>'
+                        : renderYamlScalar(node.value);
+                    html += '<div class="yaml-field-row">'
+                        + '<div class="yaml-field-key">' + escapeHtml(node.key) + '</div>'
+                        + '<div class="yaml-field-value">' + valueHtml + '</div>'
+                        + '</div>';
+                } else if (node.type === 'comment') {
+                    html += '<div class="yaml-comment-row">' + escapeHtml(node.value) + '</div>';
+                } else if (node.type === 'listItem') {
+                    var body = node.value ? renderYamlScalar(node.value) : renderYamlNodes(node.children || [], depth + 1);
+                    listBuffer.push('<li class="yaml-list-item"><span class="yaml-list-marker">' + (listBuffer.length + 1) + '</span><div class="yaml-list-body">' + body + '</div></li>');
+                } else if (node.type === 'text') {
+                    html += '<div class="yaml-block-value">' + escapeHtml(node.value) + '</div>';
+                }
+            });
+            flushList();
+            return html;
+        }
+
+        function renderYamlReadableHtml(code, cache, maxEntries) {
             setCodePreviewClass(true);
-            return '<section class="yaml-document">'
-                + '<div class="yaml-document-header">YAML</div>'
-                + '<pre class="yaml-preview"><code class="hljs language-yaml">' + highlighted + '</code></pre>'
+            var nodes = parseYamlReadable(code);
+            if (!nodes.length) {
+                var highlighted = highlightCodeCached(code, 'yaml', cache, maxEntries);
+                return '<pre class="yaml-raw-fallback"><code class="hljs language-yaml">' + highlighted + '</code></pre>\\n';
+            }
+            return '<section class="yaml-readable-document">'
+                + '<header class="yaml-readable-header"><div class="yaml-readable-title">YAML</div><div class="yaml-readable-badge">Readable View</div></header>'
+                + renderYamlNodes(nodes, 0)
                 + '</section>\\n';
         }
 
@@ -813,9 +1110,12 @@ struct PreviewView: NSViewRepresentable {
             let documentBaseJSON = (try? JSONEncoder().encode(pendingDocumentBaseURLString))
                 .flatMap { String(data: $0, encoding: .utf8) } ?? "null"
             webView.evaluateJavaScript(
-                "renderPreview(\(modeJSON), \(json), \(documentBaseJSON));",
-                completionHandler: nil
-            )
+                "renderPreview(\(modeJSON), \(json), \(documentBaseJSON));"
+            ) { _, error in
+                if let error {
+                    NSLog("CleanMD renderPreview JavaScript error: \(error.localizedDescription)")
+                }
+            }
         }
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
