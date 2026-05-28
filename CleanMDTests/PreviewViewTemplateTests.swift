@@ -48,6 +48,15 @@ final class PreviewViewTemplateTests: XCTestCase {
         XCTAssertTrue(html.contains("escapeHtml(String(text || ''))"))
     }
 
+    func testYamlReadableRendererDoesNotInventEmptyScalarText() {
+        let html = PreviewView.htmlTemplate(resourceURL: nil)
+
+        XCTAssertFalse(html.contains("yaml-scalar-muted"))
+        XCTAssertFalse(html.contains(">empty</span>"))
+        XCTAssertTrue(html.contains("if (!raw) {\n                return '';\n            }"))
+        XCTAssertFalse(html.contains("raw === 'null' || raw === '~'"))
+    }
+
     func testYamlReadableRendererPreventsHorizontalOverflow() {
         let html = PreviewView.htmlTemplate(resourceURL: nil)
 

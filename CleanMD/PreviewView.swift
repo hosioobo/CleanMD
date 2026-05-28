@@ -253,10 +253,6 @@ struct PreviewView: NSViewRepresentable {
             min-width: 0;
             overflow-wrap: anywhere;
         }
-        .yaml-scalar-muted {
-            color: var(--quote-text);
-            font-style: italic;
-        }
         .yaml-scalar-number,
         .yaml-scalar-bool {
             color: var(--link);
@@ -888,8 +884,8 @@ struct PreviewView: NSViewRepresentable {
 
         function renderYamlScalar(value) {
             var raw = String(value || '').trim();
-            if (!raw || raw === 'null' || raw === '~') {
-                return '<span class="yaml-scalar-muted">empty</span>';
+            if (!raw) {
+                return '';
             }
             var unquoted = raw;
             if ((unquoted[0] === '"' && unquoted[unquoted.length - 1] === '"') ||
