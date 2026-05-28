@@ -130,6 +130,9 @@ struct PreviewView: NSViewRepresentable {
             }
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
+        html {
+            overflow-x: hidden;
+        }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
             font-size: 15px;
@@ -222,6 +225,8 @@ struct PreviewView: NSViewRepresentable {
         .yaml-list-item,
         .yaml-block-value,
         .yaml-comment-row {
+            max-width: 100%;
+            min-width: 0;
             border: 1px solid var(--quote-border);
             border-radius: 12px;
             background: var(--preview-bg);
@@ -254,6 +259,7 @@ struct PreviewView: NSViewRepresentable {
             display: flex;
             flex-direction: column;
             gap: 9px;
+            min-width: 0;
             padding: 12px;
         }
         .yaml-field-row {
@@ -288,6 +294,17 @@ struct PreviewView: NSViewRepresentable {
         }
         .yaml-link-value {
             color: var(--link);
+            overflow-wrap: anywhere;
+            word-break: break-word;
+        }
+        @media (max-width: 760px) {
+            .yaml-field-row {
+                grid-template-columns: minmax(0, 1fr);
+                gap: 4px;
+            }
+            .yaml-field-value {
+                text-align: left;
+            }
         }
         .yaml-nested {
             display: flex;
@@ -298,9 +315,14 @@ struct PreviewView: NSViewRepresentable {
             display: flex;
             flex-direction: column;
             gap: 8px;
+            min-width: 0;
             list-style: none;
             margin: 0;
             padding: 0;
+        }
+        .yaml-list-body {
+            min-width: 0;
+            overflow-wrap: anywhere;
         }
         .yaml-list-item {
             display: grid;

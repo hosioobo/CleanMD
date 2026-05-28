@@ -45,4 +45,14 @@ final class PreviewViewTemplateTests: XCTestCase {
         XCTAssertTrue(html.contains("Preview renderer fallback:"))
         XCTAssertTrue(html.contains("escapeHtml(String(text || ''))"))
     }
+
+    func testYamlReadableRendererPreventsHorizontalOverflow() {
+        let html = PreviewView.htmlTemplate(resourceURL: nil)
+
+        XCTAssertTrue(html.contains("html {\n            overflow-x: hidden;"))
+        XCTAssertTrue(html.contains("max-width: 100%;\n            min-width: 0;"))
+        XCTAssertTrue(html.contains(".yaml-list-body"))
+        XCTAssertTrue(html.contains("overflow-wrap: anywhere;"))
+        XCTAssertTrue(html.contains("@media (max-width: 760px)"))
+    }
 }
