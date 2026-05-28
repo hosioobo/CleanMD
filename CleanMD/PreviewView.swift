@@ -199,27 +199,6 @@ struct PreviewView: NSViewRepresentable {
             max-width: 100%;
             overflow-x: hidden;
         }
-        .yaml-readable-header {
-            display: flex;
-            align-items: baseline;
-            justify-content: space-between;
-            gap: 14px;
-            padding: 3px 1px 6px;
-            border-bottom: 1px solid var(--quote-border);
-        }
-        .yaml-readable-title {
-            color: var(--h1);
-            font-size: 1.28em;
-            font-weight: 700;
-            letter-spacing: -0.01em;
-        }
-        .yaml-readable-badge {
-            color: var(--quote-text);
-            font-size: 0.75em;
-            font-weight: 700;
-            letter-spacing: 0.11em;
-            text-transform: uppercase;
-        }
         .yaml-section-card,
         .yaml-field-row,
         .yaml-list-item,
@@ -246,14 +225,6 @@ struct PreviewView: NSViewRepresentable {
             background: var(--code-block-bg);
             font-size: 0.98em;
             font-weight: 700;
-        }
-        .yaml-section-title::after {
-            content: "section";
-            color: var(--quote-text);
-            font-size: 0.72em;
-            font-weight: 700;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
         }
         .yaml-section-body {
             display: flex;
@@ -325,17 +296,7 @@ struct PreviewView: NSViewRepresentable {
             overflow-wrap: anywhere;
         }
         .yaml-list-item {
-            display: grid;
-            grid-template-columns: 28px minmax(0, 1fr);
-            gap: 10px;
             padding: 9px 11px;
-        }
-        .yaml-list-marker {
-            color: var(--quote-text);
-            font-family: "SF Mono", Menlo, monospace;
-            font-size: 0.78em;
-            font-weight: 700;
-            text-align: right;
         }
         .yaml-block-value {
             padding: 10px 12px;
@@ -538,9 +499,7 @@ struct PreviewView: NSViewRepresentable {
                 applyPreviewModeClass(normalizedMode);
                 var fallbackLang = normalizedMode.indexOf('code:') === 0 ? normalizeLanguage(normalizedMode.slice(5)) : '';
                 var fallbackClass = 'hljs' + (fallbackLang ? (' language-' + fallbackLang) : '');
-                var message = err && err.message ? String(err.message) : String(err || 'Render failed');
-                content.innerHTML = '<pre class="yaml-raw-fallback"><code class="' + fallbackClass + '">' + escapeHtml(String(text || '')) + '</code></pre>'
-                    + '<div class="yaml-comment-row">Preview renderer fallback: ' + escapeHtml(message) + '</div>';
+                content.innerHTML = '<pre class="yaml-raw-fallback"><code class="' + fallbackClass + '">' + escapeHtml(String(text || '')) + '</code></pre>';
             }
         }
 
@@ -968,9 +927,9 @@ struct PreviewView: NSViewRepresentable {
                 + '</div>';
         }
 
-        function renderYamlListItem(node, index) {
+        function renderYamlListItem(node) {
             var body = node.value ? renderYamlScalar(node.value) : renderYamlNodes(node.children || []);
-            return '<li class="yaml-list-item"><span class="yaml-list-marker">' + index + '</span><div class="yaml-list-body">' + body + '</div></li>';
+            return '<li class="yaml-list-item"><div class="yaml-list-body">' + body + '</div></li>';
         }
 
         function renderYamlTextBlock(value) {
@@ -994,7 +953,7 @@ struct PreviewView: NSViewRepresentable {
                 } else if (node.type === 'comment') {
                     html += '<div class="yaml-comment-row">' + escapeHtml(node.value) + '</div>';
                 } else if (node.type === 'listItem') {
-                    listBuffer.push(renderYamlListItem(node, listBuffer.length + 1));
+                    listBuffer.push(renderYamlListItem(node));
                 } else if (node.type === 'text') {
                     html += renderYamlTextBlock(node.value);
                 }
@@ -1011,8 +970,7 @@ struct PreviewView: NSViewRepresentable {
                 return '<pre class="yaml-raw-fallback"><code class="hljs language-yaml">' + highlighted + '</code></pre>\\n';
             }
             return '<section class="yaml-readable-document">'
-                + '<header class="yaml-readable-header"><div class="yaml-readable-title">YAML</div><div class="yaml-readable-badge">Readable View</div></header>'
-                + renderYamlNodes(nodes, 0)
+                + renderYamlNodes(nodes)
                 + '</section>\\n';
         }
 

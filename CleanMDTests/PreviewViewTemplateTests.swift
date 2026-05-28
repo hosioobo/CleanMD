@@ -10,7 +10,9 @@ final class PreviewViewTemplateTests: XCTestCase {
         XCTAssertTrue(html.contains("yaml-readable-document"))
         XCTAssertTrue(html.contains("yaml-section-card"))
         XCTAssertTrue(html.contains("yaml-field-key"))
-        XCTAssertTrue(html.contains("Readable View"))
+        XCTAssertFalse(html.contains("Readable View"))
+        XCTAssertFalse(html.contains("yaml-readable-badge"))
+        XCTAssertFalse(html.contains("yaml-section-title::after"))
     }
 
     func testPreviewKeepsFallbackRenderersWhenWebKitBlocksBundledAssets() {
@@ -42,7 +44,7 @@ final class PreviewViewTemplateTests: XCTestCase {
 
         XCTAssertTrue(html.contains("try {"))
         XCTAssertTrue(html.contains("catch (err)"))
-        XCTAssertTrue(html.contains("Preview renderer fallback:"))
+        XCTAssertFalse(html.contains("Preview renderer fallback:"))
         XCTAssertTrue(html.contains("escapeHtml(String(text || ''))"))
     }
 
