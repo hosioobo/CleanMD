@@ -4,6 +4,25 @@ All notable project updates are tracked here.
 
 ## Unreleased
 
+## v0.12.0 — 2026-06-05
+
+### Added
+
+- External file change recovery UX with clean update prompts, conflict banners, and file-unavailable recovery actions.
+- Titlebar controls for editor-only, preview-only, and side-by-side editor/preview layouts.
+- Manual reload cue that stays hidden until an external disk update needs attention.
+
+### Improved
+
+- YAML previews now read like settings documents instead of raw syntax-colored source while preserving source-faithful empty values.
+- Save Mine now uses the owning macOS document save path so AppKit document state stays aligned after conflict recovery.
+- Keep Current remains a sticky conflict state across later disk writes until the user reloads or saves.
+- The public website and release records were refreshed for the current product presentation.
+
+### Fixed
+
+- YAML readable preview text now preserves scalar fidelity and avoids overflow in long content.
+
 ## v0.11.0 — 2026-04-15
 
 ### Added
