@@ -366,6 +366,246 @@ func testScrollSyncControllerSyncsPreviewByDefault() throws {
     try expect(abs(syncedFractions[0] - 0.42) < 0.0001, "forwarded preview fraction should match editor fraction")
 }
 
+func testDocumentReloadingReadsLatestUTF8Text() throws {
+    let folder = try makeTempDirectory()
+    defer { try? FileManager.default.removeItem(at: folder) }
+    let file = folder.appendingPathComponent("note.md")
+
+    try "old".write(to: file, atomically: true, encoding: .utf8)
+    try "# Updated\n\nFresh from disk.".write(to: file, atomically: true, encoding: .utf8)
+
+    let reloadedText = try DocumentReloading.loadText(from: file)
+    try expect(
+        reloadedText == "# Updated\n\nFresh from disk.",
+        "manual reload should read the latest UTF-8 text from disk"
+    )
+}
+
+func testDocumentReloadingHandlesMissingFileURL() throws {
+    let reloadedText = try DocumentReloading.loadText(from: nil)
+    try expect(
+        reloadedText == nil,
+        "manual reload should be unavailable when the document has no file URL"
+    )
+}
+
+func testDocumentReloadingSaveText() throws {
+    let folder = try makeTempDirectory()
+    defer { try? FileManager.default.removeItem(at: folder) }
+    let file = folder.appendingPathComponent("mine.md")
+
+    try DocumentReloading.saveText("# Mine\n", to: file)
+
+    let savedText = try String(contentsOf: file, encoding: .utf8)
+    try expect(
+        savedText == "# Mine\n",
+        "saveText should write UTF-8 text to disk"
+    )
+}
+
+func testDocumentReloadingConfirmationPolicy() throws {
+    try expect(
+        DocumentReloading.requiresReplacementConfirmation(
+            currentText: "local draft",
+            reloadedText: "external update"
+        ),
+        "manual reload should confirm before replacing different editor contents"
+    )
+    try expect(
+        !DocumentReloading.requiresReplacementConfirmation(
+            currentText: "same text",
+            reloadedText: "same text"
+        ),
+        "manual reload should not confirm when disk text matches editor contents"
+    )
+}
+
+func testDocumentReloadingConflictPolicy() throws {
+    try expect(
+        DocumentReloading.hasDiskConflict(
+            currentText: "local draft",
+            diskText: "external update"
+        ),
+        "reload button should appear when disk text differs from editor contents"
+    )
+    try expect(
+        !DocumentReloading.hasDiskConflict(
+            currentText: "same text",
+            diskText: "same text"
+        ),
+        "reload button should stay hidden when disk text matches editor contents"
+    )
+}
+
+func testDocumentReloadingExternalFileStatePolicy() throws {
+    try expect(
+        DocumentReloading.externalFileState(
+            baselineText: "old",
+            currentText: "new",
+            diskText: "new"
+        ) == .idle,
+        "matching editor and disk text should be idle"
+    )
+    try expect(
+        DocumentReloading.externalFileState(
+            baselineText: "old",
+            currentText: "local draft",
+            diskText: "old"
+        ) == .idle,
+        "local-only edits should not create an external file state"
+    )
+    try expect(
+        DocumentReloading.externalFileState(
+            baselineText: "old",
+            currentText: "old",
+            diskText: "external"
+        ) == .externalUpdateAvailable,
+        "disk-only edits should be an external update"
+    )
+    try expect(
+        DocumentReloading.externalFileState(
+            baselineText: "old",
+            currentText: "local draft",
+            diskText: "external"
+        ) == .conflict,
+        "local and disk edits should be a conflict"
+    )
+    try expect(
+        DocumentReloading.externalFileState(
+            baselineText: "old",
+            currentText: "local draft",
+            diskText: nil
+        ) == .fileUnavailable,
+        "missing disk text should be fileUnavailable"
+    )
+}
+
+func testReloadConflictMonitorTransitions() throws {
+    let folder = try makeTempDirectory()
+    defer { try? FileManager.default.removeItem(at: folder) }
+    let file = folder.appendingPathComponent("note.md")
+
+    try "external".write(to: file, atomically: true, encoding: .utf8)
+
+    let reloadMonitor = ReloadConflictMonitor()
+    defer { reloadMonitor.stop() }
+    reloadMonitor.start(fileURL: file, currentText: "baseline")
+
+    try expect(
+        reloadMonitor.state == .externalUpdateAvailable,
+        "disk-only edits should surface as an external update"
+    )
+    try expect(
+        reloadMonitor.pendingDiskText == "external",
+        "external update state should retain the pending disk text"
+    )
+
+    reloadMonitor.keepCurrentVersion()
+    try expect(
+        reloadMonitor.state == .conflict,
+        "Keep Current should preserve the cue as a conflict requiring Save Mine"
+    )
+    try expect(
+        reloadMonitor.pendingDiskText == "external",
+        "Keep Current should keep the disk version available for Keep Both"
+    )
+
+    reloadMonitor.markSaved(currentText: "mine")
+    try expect(
+        reloadMonitor.state == .idle && reloadMonitor.pendingDiskText == nil,
+        "Save Mine should clear the conflict state after a successful save"
+    )
+
+    reloadMonitor.start(fileURL: file, currentText: "baseline")
+    reloadMonitor.markResolved(currentText: "external")
+    try expect(
+        reloadMonitor.state == .idle && reloadMonitor.pendingDiskText == nil,
+        "Reload should clear the external update after applying disk text"
+    )
+}
+
+func testReloadConflictMonitorKeepsCurrentStickyAcrossLaterDiskWrites() throws {
+    let folder = try makeTempDirectory()
+    defer { try? FileManager.default.removeItem(at: folder) }
+    let file = folder.appendingPathComponent("note.md")
+
+    try "external one".write(to: file, atomically: true, encoding: .utf8)
+
+    let reloadMonitor = ReloadConflictMonitor()
+    defer { reloadMonitor.stop() }
+    reloadMonitor.start(fileURL: file, currentText: "baseline")
+    reloadMonitor.keepCurrentVersion()
+
+    try "external two".write(to: file, atomically: true, encoding: .utf8)
+    reloadMonitor.updateCurrentText("baseline")
+
+    try expect(
+        reloadMonitor.state == .conflict,
+        "Keep Current should remain a conflict until the user reloads or saves"
+    )
+    try expect(
+        reloadMonitor.pendingDiskText == "external two",
+        "sticky Keep Current should retain the latest disk text for Keep Both"
+    )
+}
+
+func testReloadConflictMonitorDetectsUnavailableFile() throws {
+    let folder = try makeTempDirectory()
+    defer { try? FileManager.default.removeItem(at: folder) }
+    let missingFile = folder.appendingPathComponent("missing.md")
+
+    let reloadMonitor = ReloadConflictMonitor()
+    defer { reloadMonitor.stop() }
+    reloadMonitor.start(fileURL: missingFile, currentText: "draft")
+
+    try expect(
+        reloadMonitor.state == .fileUnavailable,
+        "missing files should surface as fileUnavailable"
+    )
+    try expect(
+        reloadMonitor.pendingDiskText == nil,
+        "unavailable files should not retain stale disk text"
+    )
+}
+
+func testSaveMineUsesDocumentSaveCoordinator() throws {
+    guard let projectDir = ProcessInfo.processInfo.environment["PROJECT_DIR"] else {
+        throw SmokeTestFailure(message: "PROJECT_DIR is required for source policy tests")
+    }
+
+    let sourceURL = URL(fileURLWithPath: projectDir)
+        .appendingPathComponent("CleanMD/ContentView.swift")
+    let source = try String(contentsOf: sourceURL, encoding: .utf8)
+
+    try expect(
+        source.contains("documentSaveCoordinator.save"),
+        "Save Mine should route through NSDocument save coordination"
+    )
+    try expect(
+        !source.contains("DocumentReloading.saveText(document.text, to: fileURL)"),
+        "Save Mine should not bypass NSDocument by writing document.text directly to disk"
+    )
+}
+
+func testEditorPreviewPanelModeVisibility() throws {
+    try expect(
+        EditorPreviewPanelMode.both.showsEditor && EditorPreviewPanelMode.both.showsPreview,
+        "both mode should show the editor and preview"
+    )
+    try expect(
+        EditorPreviewPanelMode.editorOnly.showsEditor && !EditorPreviewPanelMode.editorOnly.showsPreview,
+        "editor-only mode should hide the preview"
+    )
+    try expect(
+        !EditorPreviewPanelMode.previewOnly.showsEditor && EditorPreviewPanelMode.previewOnly.showsPreview,
+        "preview-only mode should hide the editor"
+    )
+    try expect(
+        EditorPreviewPanelMode.normalized("unknown") == .both,
+        "invalid persisted panel mode should fall back to both"
+    )
+}
+
 @main
 enum SmokeTestsMain {
     static func main() throws {
@@ -390,7 +630,18 @@ enum SmokeTestsMain {
             ("ColorSettingsPresetApplyAndDetection", testColorSettingsPresetApplyAndDetection),
             ("AppearanceInspectorLayoutClamp", testAppearanceInspectorLayoutClamp),
             ("ScrollSyncControllerStartsLinked", testScrollSyncControllerStartsLinked),
-            ("ScrollSyncControllerSyncsPreviewByDefault", testScrollSyncControllerSyncsPreviewByDefault)
+            ("ScrollSyncControllerSyncsPreviewByDefault", testScrollSyncControllerSyncsPreviewByDefault),
+            ("DocumentReloadingReadsLatestUTF8Text", testDocumentReloadingReadsLatestUTF8Text),
+            ("DocumentReloadingHandlesMissingFileURL", testDocumentReloadingHandlesMissingFileURL),
+            ("DocumentReloadingSaveText", testDocumentReloadingSaveText),
+            ("DocumentReloadingConfirmationPolicy", testDocumentReloadingConfirmationPolicy),
+            ("DocumentReloadingConflictPolicy", testDocumentReloadingConflictPolicy),
+            ("DocumentReloadingExternalFileStatePolicy", testDocumentReloadingExternalFileStatePolicy),
+            ("ReloadConflictMonitorTransitions", testReloadConflictMonitorTransitions),
+            ("ReloadConflictMonitorKeepsCurrentStickyAcrossLaterDiskWrites", testReloadConflictMonitorKeepsCurrentStickyAcrossLaterDiskWrites),
+            ("ReloadConflictMonitorDetectsUnavailableFile", testReloadConflictMonitorDetectsUnavailableFile),
+            ("SaveMineUsesDocumentSaveCoordinator", testSaveMineUsesDocumentSaveCoordinator),
+            ("EditorPreviewPanelModeVisibility", testEditorPreviewPanelModeVisibility)
         ]
 
         for (name, test) in tests {

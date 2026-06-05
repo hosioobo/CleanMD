@@ -24,6 +24,9 @@ swiftc \
   "$PROJECT_DIR/CleanMD/AppearanceInspectorLayout.swift" \
   "$PROJECT_DIR/CleanMD/MarkdownTableNormalizer.swift" \
   "$PROJECT_DIR/CleanMD/MarkdownLinkDestinationNormalizer.swift" \
+  "$PROJECT_DIR/CleanMD/DocumentReloading.swift" \
+  "$PROJECT_DIR/CleanMD/ReloadConflictMonitor.swift" \
+  "$PROJECT_DIR/CleanMD/EditorPreviewPanelMode.swift" \
   "$PROJECT_DIR/CleanMD/PreviewURLPolicy.swift" \
   "$PROJECT_DIR/CleanMD/WindowFramePolicy.swift" \
   "$PROJECT_DIR/CleanMD/RecentDocumentHistory.swift" \
@@ -32,4 +35,4 @@ swiftc \
   "$PROJECT_DIR/scripts/SmokeTestsMain.swift" \
   -o "$OUT"
 
-"$OUT"
+PROJECT_DIR="$PROJECT_DIR" "$OUT"

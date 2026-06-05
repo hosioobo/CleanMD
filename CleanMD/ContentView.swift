@@ -5,15 +5,20 @@ import UniformTypeIdentifiers
 struct ContentView: View {
     @Binding var document: MarkdownDocument
     let fileURL: URL?
+    @Environment(\.newDocument) private var newDocument
     @StateObject private var scrollSync: ScrollSyncController
     @StateObject private var fileExplorerStore: FileExplorerStore
+    @StateObject private var reloadConflictMonitor: ReloadConflictMonitor
+    @StateObject private var documentSaveCoordinator: DocumentSaveCoordinator
     @AppStorage("isDarkMode") private var isDarkMode: Bool = false
     @SceneStorage("isSidebarCollapsed") private var isSidebarCollapsed: Bool = false
+    @SceneStorage("editorPreviewPanelMode") private var editorPreviewPanelModeRaw: String = EditorPreviewPanelMode.both.rawValue
     @State private var isColorPanelVisible: Bool = false
     @SceneStorage("appearanceInspectorWidth") private var appearanceInspectorWidth: Double = Double(AppearanceInspectorLayout.defaultWidth)
     @State private var isDragTargeted = false
     @State private var inspectorDragStartWidth: CGFloat?
     @State private var inspectorResizeCursorActive = false
+    @State private var lastPresentedExternalUpdateText: String?
     // Observing colorSettings causes ContentView to re-render when palette changes,
     // which propagates the new palette + version params to the NSViewRepresentables.
     @ObservedObject private var colorSettings = ColorSettings.shared
@@ -25,6 +30,8 @@ struct ContentView: View {
         _fileExplorerStore = StateObject(
             wrappedValue: FileExplorerStore(currentFileURL: fileURL)
         )
+        _reloadConflictMonitor = StateObject(wrappedValue: ReloadConflictMonitor())
+        _documentSaveCoordinator = StateObject(wrappedValue: DocumentSaveCoordinator())
     }
 
     var body: some View {
@@ -44,13 +51,29 @@ struct ContentView: View {
         .preferredColorScheme(isDarkMode ? .dark : .light)
         .background(WindowConfigurator(
             scrollSync: scrollSync,
-            isColorPanelVisible: $isColorPanelVisible
+            isColorPanelVisible: $isColorPanelVisible,
+            editorPreviewPanelModeRaw: editorPreviewPanelModeBinding,
+            showsReloadButton: reloadConflictMonitor.state == .externalUpdateAvailable,
+            onReloadFromDisk: handleReloadCue
         ))
         .onAppear {
             fileExplorerStore.updateCurrentFileURL(fileURL)
+            reloadConflictMonitor.start(fileURL: fileURL, currentText: document.text)
         }
         .onChange(of: fileURL) { newValue in
             fileExplorerStore.updateCurrentFileURL(newValue)
+            reloadConflictMonitor.start(fileURL: newValue, currentText: document.text)
+        }
+        .onChange(of: document.text) { newValue in
+            reloadConflictMonitor.updateCurrentText(newValue)
+        }
+        .onChange(of: reloadConflictMonitor.state) { newValue in
+            if newValue == .externalUpdateAvailable {
+                presentExternalUpdatePromptIfNeeded()
+            }
+        }
+        .onChange(of: reloadConflictMonitor.pendingDiskText) { _ in
+            presentExternalUpdatePromptIfNeeded()
         }
         .onDrop(of: [UTType.fileURL], isTargeted: $isDragTargeted) { providers in
             for provider in providers {
@@ -87,23 +110,7 @@ struct ContentView: View {
                 store: fileExplorerStore,
                 isCollapsed: $isSidebarCollapsed
             ),
-            right: NoDividerHSplitView(
-                left: EditorView(
-                    text: $document.text,
-                    scrollSync: scrollSync,
-                    isDarkMode: isDarkMode,
-                    palette: colorSettings.palette(isDark: isDarkMode)
-                ),
-                right: PreviewView(
-                    text: document.text,
-                    scrollSync: scrollSync,
-                    isDarkMode: isDarkMode,
-                    palette: colorSettings.palette(isDark: isDarkMode),
-                    showH1Divider: colorSettings.showH1Divider,
-                    showH2Divider: colorSettings.showH2Divider,
-                    fileURL: fileURL
-                )
-            ),
+            right: documentWorkspace,
             layout: .init(
                 autosaveKey: "CleanMDSidebarExpandedWidthV2",
                 defaultLeftWidth: 220,
@@ -114,6 +121,265 @@ struct ContentView: View {
                 preserveLeftWidthOnResize: true
             )
         )
+    }
+
+    private var documentWorkspace: some View {
+        VStack(spacing: 0) {
+            externalFileBanner
+            editorPreviewWorkspace
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+    }
+
+    @ViewBuilder
+    private var externalFileBanner: some View {
+        switch reloadConflictMonitor.state {
+        case .conflict:
+            conflictBanner
+        case .fileUnavailable:
+            fileUnavailableBanner
+        case .idle, .externalUpdateAvailable:
+            EmptyView()
+        }
+    }
+
+    private var conflictBanner: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(.orange)
+
+            Text("External changes conflict with this editor.")
+                .font(.system(size: 12.5, weight: .medium))
+                .foregroundStyle(.primary)
+
+            Spacer(minLength: 12)
+
+            Button("Reload Disk", action: reloadDiskVersionWithConfirmation)
+            Button("Keep Both", action: keepBothVersions)
+            Button("Save Mine", action: saveMineToDisk)
+        }
+        .buttonStyle(.bordered)
+        .controlSize(.small)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 7)
+        .background(Color(nsColor: .controlBackgroundColor))
+        .overlay(alignment: .bottom) {
+            Rectangle()
+                .fill(Color.primary.opacity(0.10))
+                .frame(height: 1)
+        }
+    }
+
+    private var fileUnavailableBanner: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "exclamationmark.octagon.fill")
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(.red)
+
+            Text("The file was moved, deleted, or cannot be read.")
+                .font(.system(size: 12.5, weight: .medium))
+                .foregroundStyle(.primary)
+
+            Spacer(minLength: 12)
+
+            Button("Save As", action: saveCurrentDocumentAs)
+            Button("Dismiss", action: reloadConflictMonitor.dismissFileUnavailable)
+        }
+        .buttonStyle(.bordered)
+        .controlSize(.small)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 7)
+        .background(Color(nsColor: .controlBackgroundColor))
+        .overlay(alignment: .bottom) {
+            Rectangle()
+                .fill(Color.primary.opacity(0.10))
+                .frame(height: 1)
+        }
+    }
+
+    @ViewBuilder
+    private var editorPreviewWorkspace: some View {
+        switch editorPreviewPanelMode {
+        case .both:
+            NoDividerHSplitView(
+                left: editorPanel,
+                right: previewPanel
+            )
+        case .editorOnly:
+            editorPanel
+        case .previewOnly:
+            previewPanel
+        }
+    }
+
+    private var editorPanel: some View {
+        EditorView(
+            text: $document.text,
+            scrollSync: scrollSync,
+            isDarkMode: isDarkMode,
+            palette: colorSettings.palette(isDark: isDarkMode)
+        )
+    }
+
+    private var previewPanel: some View {
+        PreviewView(
+            text: document.text,
+            scrollSync: scrollSync,
+            isDarkMode: isDarkMode,
+            palette: colorSettings.palette(isDark: isDarkMode),
+            showH1Divider: colorSettings.showH1Divider,
+            showH2Divider: colorSettings.showH2Divider,
+            fileURL: fileURL
+        )
+    }
+
+    private var editorPreviewPanelMode: EditorPreviewPanelMode {
+        EditorPreviewPanelMode.normalized(editorPreviewPanelModeRaw)
+    }
+
+    private var editorPreviewPanelModeBinding: Binding<String> {
+        Binding(
+            get: { EditorPreviewPanelMode.normalized(editorPreviewPanelModeRaw).rawValue },
+            set: { editorPreviewPanelModeRaw = EditorPreviewPanelMode.normalized($0).rawValue }
+        )
+    }
+
+    private func handleReloadCue() {
+        switch reloadConflictMonitor.state {
+        case .externalUpdateAvailable:
+            presentExternalUpdatePrompt(force: true)
+        case .conflict:
+            reloadDiskVersionWithConfirmation()
+        case .idle, .fileUnavailable:
+            NSSound.beep()
+        }
+    }
+
+    private func reloadDiskVersionWithConfirmation() {
+        do {
+            guard let reloadedText = try latestDiskText() else {
+                NSSound.beep()
+                return
+            }
+
+            if DocumentReloading.requiresReplacementConfirmation(
+                currentText: document.text,
+                reloadedText: reloadedText
+            ) {
+                guard confirmReloadReplacement() else { return }
+            }
+
+            applyDiskText(reloadedText)
+        } catch {
+            NSSound.beep()
+        }
+    }
+
+    private func presentExternalUpdatePromptIfNeeded() {
+        guard reloadConflictMonitor.state == .externalUpdateAvailable,
+              let diskText = reloadConflictMonitor.pendingDiskText,
+              lastPresentedExternalUpdateText != diskText else { return }
+
+        DispatchQueue.main.async {
+            presentExternalUpdatePrompt()
+        }
+    }
+
+    private func presentExternalUpdatePrompt(force: Bool = false) {
+        guard reloadConflictMonitor.state == .externalUpdateAvailable,
+              let diskText = reloadConflictMonitor.pendingDiskText else { return }
+        guard force || lastPresentedExternalUpdateText != diskText else { return }
+
+        lastPresentedExternalUpdateText = diskText
+
+        let alert = NSAlert()
+        alert.alertStyle = .informational
+        alert.messageText = "External Changes Available"
+        alert.informativeText = "The file changed on disk. Choose whether to reload the disk version or keep the current editor contents."
+        alert.addButton(withTitle: "Reload")
+        alert.addButton(withTitle: "Keep Current")
+        alert.addButton(withTitle: "Cancel")
+
+        switch alert.runModal() {
+        case .alertFirstButtonReturn:
+            applyDiskText(diskText)
+        case .alertSecondButtonReturn:
+            reloadConflictMonitor.keepCurrentVersion()
+        default:
+            break
+        }
+    }
+
+    private func confirmReloadReplacement() -> Bool {
+        let alert = NSAlert()
+        alert.alertStyle = .warning
+        alert.messageText = "Reload from Disk?"
+        alert.informativeText = "This will replace the current editor contents with the latest version on disk. Any unsaved edits in this window will be discarded."
+        alert.addButton(withTitle: "Reload")
+        alert.addButton(withTitle: "Cancel")
+        return alert.runModal() == .alertFirstButtonReturn
+    }
+
+    private func latestDiskText() throws -> String? {
+        if let pendingDiskText = reloadConflictMonitor.pendingDiskText {
+            return pendingDiskText
+        }
+        return try DocumentReloading.loadText(from: fileURL)
+    }
+
+    private func applyDiskText(_ text: String) {
+        document.text = text
+        lastPresentedExternalUpdateText = nil
+        reloadConflictMonitor.markResolved(currentText: text)
+        clearReloadedDocumentChangeCount()
+    }
+
+    private func saveMineToDisk() {
+        guard let fileURL,
+              let nsDocument = NSDocumentController.shared.document(for: fileURL) else {
+            NSSound.beep()
+            return
+        }
+
+        documentSaveCoordinator.save(nsDocument) { didSave in
+            DispatchQueue.main.async {
+                guard didSave else {
+                    NSSound.beep()
+                    return
+                }
+
+                lastPresentedExternalUpdateText = nil
+                reloadConflictMonitor.markSaved(currentText: document.text)
+            }
+        }
+    }
+
+    private func keepBothVersions() {
+        guard let diskText = reloadConflictMonitor.pendingDiskText else {
+            NSSound.beep()
+            return
+        }
+
+        newDocument(MarkdownDocument(text: diskText))
+        reloadConflictMonitor.keepCurrentVersion()
+    }
+
+    private func saveCurrentDocumentAs() {
+        guard let fileURL,
+              let nsDocument = NSDocumentController.shared.document(for: fileURL) else {
+            NSSound.beep()
+            return
+        }
+
+        nsDocument.saveAs(nil)
+    }
+
+    private func clearReloadedDocumentChangeCount() {
+        guard let fileURL else { return }
+        DispatchQueue.main.async {
+            NSDocumentController.shared.document(for: fileURL)?.updateChangeCount(.changeCleared)
+        }
     }
 
     private func trailingAppearanceInspector(availableHeight: CGFloat, totalWidth: CGFloat) -> some View {
@@ -436,6 +702,9 @@ private final class WindowSetupView: NSView {
 private struct WindowConfigurator: NSViewRepresentable {
     let scrollSync: ScrollSyncController
     let isColorPanelVisible: Binding<Bool>
+    let editorPreviewPanelModeRaw: Binding<String>
+    let showsReloadButton: Bool
+    let onReloadFromDisk: () -> Void
 
     func makeNSView(context: Context) -> WindowSetupView {
         let view = WindowSetupView()
@@ -447,13 +716,14 @@ private struct WindowConfigurator: NSViewRepresentable {
             let icons = TitleBarIcons(
                 scrollSync: context.coordinator.scrollSync,
                 isColorPanelVisible: isColorPanelVisible,
+                editorPreviewPanelModeRaw: editorPreviewPanelModeRaw,
+                showsReloadButton: showsReloadButton,
+                onReloadFromDisk: onReloadFromDisk,
                 onToggleAppearancePanel: { context.coordinator.toggleAppearancePanel() }
             )
             let hosting = NSHostingView(rootView: icons)
             context.coordinator.titlebarHosting = hosting
-            var size = hosting.fittingSize
-            if size.width < 10 { size = CGSize(width: 120, height: 28) } // safety fallback
-            hosting.frame.size = size
+            Self.updateFittingSize(for: hosting)
 
             let vc = NSTitlebarAccessoryViewController()
             vc.view = hosting
@@ -464,15 +734,26 @@ private struct WindowConfigurator: NSViewRepresentable {
     }
 
     func updateNSView(_ nsView: WindowSetupView, context: Context) {
-        context.coordinator.titlebarHosting?.rootView = TitleBarIcons(
+        guard let hosting = context.coordinator.titlebarHosting else { return }
+        hosting.rootView = TitleBarIcons(
             scrollSync: scrollSync,
             isColorPanelVisible: isColorPanelVisible,
+            editorPreviewPanelModeRaw: editorPreviewPanelModeRaw,
+            showsReloadButton: showsReloadButton,
+            onReloadFromDisk: onReloadFromDisk,
             onToggleAppearancePanel: { context.coordinator.toggleAppearancePanel() }
         )
+        Self.updateFittingSize(for: hosting)
     }
 
     func makeCoordinator() -> Coordinator {
         Coordinator(scrollSync: scrollSync, isColorPanelVisible: isColorPanelVisible)
+    }
+
+    private static func updateFittingSize(for hosting: NSHostingView<TitleBarIcons>) {
+        var size = hosting.fittingSize
+        if size.width < 10 { size = CGSize(width: 120, height: 28) } // safety fallback
+        hosting.frame.size = size
     }
 
     class Coordinator {
@@ -575,14 +856,38 @@ private struct TitleBarIcons: View {
     @AppStorage("isDarkMode") private var isDarkMode: Bool = false
     @ObservedObject var scrollSync: ScrollSyncController
     @Binding var isColorPanelVisible: Bool
+    @Binding var editorPreviewPanelModeRaw: String
+    let showsReloadButton: Bool
+    let onReloadFromDisk: () -> Void
     let onToggleAppearancePanel: () -> Void
 
+    @State private var reloadHover  = false
     @State private var darkHover    = false
     @State private var syncHover    = false
     @State private var paletteHover = false
 
     var body: some View {
         HStack(spacing: 14) {
+            if showsReloadButton {
+                // Reload from disk
+                Button {
+                    onReloadFromDisk()
+                } label: {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.system(size: 11.5, weight: .medium))
+                        .symbolRenderingMode(.hierarchical)
+                        .foregroundStyle(.secondary)
+                        .opacity(reloadHover ? 0.45 : 1.0)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .help("Reload External Changes from Disk")
+                .accessibilityLabel("Reload External Changes from Disk")
+                .onHover { reloadHover = $0 }
+            }
+
+            EditorPreviewPanelModeControl(selection: $editorPreviewPanelModeRaw)
+
             // Scroll sync icon
             Button {
                 scrollSync.toggleLinking()
@@ -632,6 +937,61 @@ private struct TitleBarIcons: View {
         .padding(.horizontal, 6)
         .padding(.vertical, 3)
         .padding(.trailing, 8)
+    }
+}
+
+private struct EditorPreviewPanelModeControl: View {
+    @Binding var selection: String
+
+    var body: some View {
+        HStack(spacing: 0) {
+            segment(
+                mode: .editorOnly,
+                systemName: "sidebar.left",
+                help: "Show Editor Only"
+            )
+            segment(
+                mode: .both,
+                systemName: "rectangle.split.2x1",
+                help: "Show Editor and Preview"
+            )
+            segment(
+                mode: .previewOnly,
+                systemName: "sidebar.right",
+                help: "Show Preview Only"
+            )
+        }
+        .padding(1)
+        .background(Color.primary.opacity(0.08))
+        .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Editor Preview Layout")
+    }
+
+    private func segment(
+        mode: EditorPreviewPanelMode,
+        systemName: String,
+        help: String
+    ) -> some View {
+        let isSelected = EditorPreviewPanelMode.normalized(selection) == mode
+
+        return Button {
+            selection = mode.rawValue
+        } label: {
+            Image(systemName: systemName)
+                .font(.system(size: 11, weight: .medium))
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(isSelected ? Color.accentColor : .secondary)
+                .frame(width: 24, height: 20)
+                .background(
+                    RoundedRectangle(cornerRadius: 4, style: .continuous)
+                        .fill(isSelected ? Color.accentColor.opacity(0.16) : Color.clear)
+                )
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help(help)
+        .accessibilityLabel(help)
     }
 }
 
