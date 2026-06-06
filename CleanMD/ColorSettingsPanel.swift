@@ -5,6 +5,7 @@ import SwiftUI
 private struct ColorValueControl: View {
     @Binding var hex: String
     let label: String
+    let themeAccent: Color
     @State private var isPopoverPresented = false
     @State private var isHovered = false
     @State private var isFieldFocused = false
@@ -25,7 +26,12 @@ private struct ColorValueControl: View {
             .help("Choose \(label.lowercased()) color")
             .accessibilityLabel("Choose \(label) color")
             .popover(isPresented: $isPopoverPresented, arrowEdge: .bottom) {
-                QuickColorPopover(hex: $hex, isPresented: $isPopoverPresented, controlName: label)
+                QuickColorPopover(
+                    hex: $hex,
+                    isPresented: $isPopoverPresented,
+                    controlName: label,
+                    themeAccent: themeAccent
+                )
             }
 
             Rectangle()
@@ -42,7 +48,7 @@ private struct ColorValueControl: View {
                     RoundedRectangle(cornerRadius: 7, style: .continuous)
                         .strokeBorder(
                             isActive
-                                ? Color.accentColor.opacity(0.8)
+                                ? themeAccent.opacity(0.8)
                                 : Color.primary.opacity(isHovered ? 0.24 : 0.14),
                             lineWidth: isActive ? 1.5 : 1
                         )
@@ -68,6 +74,7 @@ private struct QuickColorPopover: View {
     @Binding var hex: String
     @Binding var isPresented: Bool
     let controlName: String
+    let themeAccent: Color
 
     private var liveColor: Binding<Color> {
         Binding(
@@ -110,7 +117,7 @@ private struct QuickColorPopover: View {
                                     .overlay(
                                         RoundedRectangle(cornerRadius: 5, style: .continuous)
                                             .strokeBorder(
-                                                hex == swatch ? Color.accentColor : Color.primary.opacity(0.16),
+                                                hex == swatch ? themeAccent : Color.primary.opacity(0.16),
                                                 lineWidth: hex == swatch ? 1.5 : 1
                                             )
                                     )
@@ -136,6 +143,7 @@ private struct QuickColorPopover: View {
                 StandaloneHexField(
                     hex: $hex,
                     label: "\(controlName) hex value",
+                    themeAccent: themeAccent,
                     fieldHeight: 26,
                     cornerRadius: 6
                 )
@@ -149,6 +157,7 @@ private struct QuickColorPopover: View {
 private struct StandaloneHexField: View {
     @Binding var hex: String
     let label: String
+    let themeAccent: Color
     var fieldHeight: CGFloat = 22
     var cornerRadius: CGFloat = 4
     @State private var hexInput = ""
@@ -168,7 +177,7 @@ private struct StandaloneHexField: View {
                     .overlay(
                         RoundedRectangle(cornerRadius: cornerRadius)
                             .strokeBorder(
-                                hexFocused ? Color.accentColor.opacity(0.7) : Color.primary.opacity(0.16),
+                                hexFocused ? themeAccent.opacity(0.7) : Color.primary.opacity(0.16),
                                 lineWidth: 1
                             )
                     )
@@ -232,6 +241,7 @@ struct ColorSettingsPanel: View {
 
     /// Active palette — follows app's dark/light toggle, not OS appearance.
     private var cp: ColorPalette { isDarkMode ? cs.darkPalette : cs.lightPalette }
+    private var themeAccent: Color { Color(hex: cp.themeAccent) }
 
     // Panel layout constants
     private let col1: CGFloat = 138
@@ -316,6 +326,7 @@ struct ColorSettingsPanel: View {
             .pickerStyle(.menu)
             .labelsHidden()
             .frame(width: 120, alignment: .leading)
+            .tint(themeAccent)
             .help("Choose appearance theme preset")
             .accessibilityLabel("Appearance Theme")
 
@@ -326,6 +337,7 @@ struct ColorSettingsPanel: View {
                 }
             }
             .controlSize(.small)
+            .tint(themeAccent)
             .help("Restore default appearance colors")
             .accessibilityLabel("Restore Default Appearance Colors")
         }
@@ -519,13 +531,13 @@ struct ColorSettingsPanel: View {
                 .frame(width: col1, alignment: .leading)
                 .clipped()
             HStack(spacing: 0) {
-                ColorValueControl(hex: lHex, label: "Light \(accessibilityName)")
+                ColorValueControl(hex: lHex, label: "Light \(accessibilityName)", themeAccent: themeAccent)
             }
             .frame(width: col2, alignment: .leading)
             .clipped()
             Color.clear.frame(width: modeGap)
             HStack(spacing: 0) {
-                ColorValueControl(hex: dHex, label: "Dark \(accessibilityName)")
+                ColorValueControl(hex: dHex, label: "Dark \(accessibilityName)", themeAccent: themeAccent)
             }
             .frame(width: col3, alignment: .leading)
             .clipped()

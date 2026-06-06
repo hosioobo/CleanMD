@@ -75,4 +75,10 @@ final class ColorSettingsTests: XCTestCase {
 
         XCTAssertEqual(settings.currentPreset, .custom)
     }
+
+    func testThemeAccentUsesPaletteLinkColor() {
+        let palette = ColorPalette(link: "#a14a3b")
+
+        XCTAssertEqual(palette.themeAccent, "#a14a3b")
+    }
 }

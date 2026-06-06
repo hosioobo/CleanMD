@@ -39,13 +39,6 @@ enum DocumentReloading {
         try text.write(to: fileURL, atomically: true, encoding: .utf8)
     }
 
-    static func hasDiskConflict(
-        currentText: String,
-        diskText: String
-    ) -> Bool {
-        currentText != diskText
-    }
-
     static func externalFileState(
         baselineText: String,
         currentText: String,
@@ -72,6 +65,6 @@ enum DocumentReloading {
         currentText: String,
         reloadedText: String
     ) -> Bool {
-        hasDiskConflict(currentText: currentText, diskText: reloadedText)
+        currentText != reloadedText
     }
 }

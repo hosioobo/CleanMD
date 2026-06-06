@@ -56,24 +56,6 @@ final class DocumentReloadingTests: XCTestCase {
         )
     }
 
-    func testReloadConflictIsDetectedWhenDiskTextDiffersFromEditorText() {
-        XCTAssertTrue(
-            DocumentReloading.hasDiskConflict(
-                currentText: "local draft",
-                diskText: "external update"
-            )
-        )
-    }
-
-    func testReloadConflictIsNotDetectedWhenDiskTextMatchesEditorText() {
-        XCTAssertFalse(
-            DocumentReloading.hasDiskConflict(
-                currentText: "same text",
-                diskText: "same text"
-            )
-        )
-    }
-
     func testExternalStateIsIdleWhenDiskAndEditorMatch() {
         XCTAssertEqual(
             DocumentReloading.externalFileState(

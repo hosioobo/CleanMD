@@ -50,6 +50,7 @@ struct ContentView: View {
         }
         .preferredColorScheme(isDarkMode ? .dark : .light)
         .background(WindowConfigurator(
+            palette: activePalette,
             scrollSync: scrollSync,
             isColorPanelVisible: $isColorPanelVisible,
             editorPreviewPanelModeRaw: editorPreviewPanelModeBinding,
@@ -98,7 +99,7 @@ struct ContentView: View {
         .overlay {
             if isDragTargeted {
                 Rectangle()
-                    .stroke(Color.accentColor, lineWidth: 3)
+                    .stroke(themeAccent, lineWidth: 3)
                     .allowsHitTesting(false)
             }
         }
@@ -108,6 +109,7 @@ struct ContentView: View {
         NoDividerHSplitView(
             left: FileExplorerView(
                 store: fileExplorerStore,
+                palette: activePalette,
                 isCollapsed: $isSidebarCollapsed
             ),
             right: documentWorkspace,
@@ -121,6 +123,14 @@ struct ContentView: View {
                 preserveLeftWidthOnResize: true
             )
         )
+    }
+
+    private var activePalette: ColorPalette {
+        colorSettings.palette(isDark: isDarkMode)
+    }
+
+    private var themeAccent: Color {
+        Color(hex: activePalette.themeAccent)
     }
 
     private var documentWorkspace: some View {
@@ -218,7 +228,7 @@ struct ContentView: View {
             text: $document.text,
             scrollSync: scrollSync,
             isDarkMode: isDarkMode,
-            palette: colorSettings.palette(isDark: isDarkMode)
+            palette: activePalette
         )
     }
 
@@ -227,7 +237,7 @@ struct ContentView: View {
             text: document.text,
             scrollSync: scrollSync,
             isDarkMode: isDarkMode,
-            palette: colorSettings.palette(isDark: isDarkMode),
+            palette: activePalette,
             showH1Divider: colorSettings.showH1Divider,
             showH2Divider: colorSettings.showH2Divider,
             fileURL: fileURL
@@ -700,6 +710,7 @@ private final class WindowSetupView: NSView {
 }
 
 private struct WindowConfigurator: NSViewRepresentable {
+    let palette: ColorPalette
     let scrollSync: ScrollSyncController
     let isColorPanelVisible: Binding<Bool>
     let editorPreviewPanelModeRaw: Binding<String>
@@ -714,6 +725,7 @@ private struct WindowConfigurator: NSViewRepresentable {
 
         view.onWindowDidAttach = { window in
             let icons = TitleBarIcons(
+                palette: palette,
                 scrollSync: context.coordinator.scrollSync,
                 isColorPanelVisible: isColorPanelVisible,
                 editorPreviewPanelModeRaw: editorPreviewPanelModeRaw,
@@ -736,6 +748,7 @@ private struct WindowConfigurator: NSViewRepresentable {
     func updateNSView(_ nsView: WindowSetupView, context: Context) {
         guard let hosting = context.coordinator.titlebarHosting else { return }
         hosting.rootView = TitleBarIcons(
+            palette: palette,
             scrollSync: scrollSync,
             isColorPanelVisible: isColorPanelVisible,
             editorPreviewPanelModeRaw: editorPreviewPanelModeRaw,
@@ -854,6 +867,7 @@ private struct WindowConfigurator: NSViewRepresentable {
 
 private struct TitleBarIcons: View {
     @AppStorage("isDarkMode") private var isDarkMode: Bool = false
+    let palette: ColorPalette
     @ObservedObject var scrollSync: ScrollSyncController
     @Binding var isColorPanelVisible: Bool
     @Binding var editorPreviewPanelModeRaw: String
@@ -865,6 +879,10 @@ private struct TitleBarIcons: View {
     @State private var darkHover    = false
     @State private var syncHover    = false
     @State private var paletteHover = false
+
+    private var themeAccent: Color {
+        Color(hex: palette.themeAccent)
+    }
 
     var body: some View {
         HStack(spacing: 14) {
@@ -886,14 +904,14 @@ private struct TitleBarIcons: View {
                 .onHover { reloadHover = $0 }
             }
 
-            EditorPreviewPanelModeControl(selection: $editorPreviewPanelModeRaw)
+            EditorPreviewPanelModeControl(selection: $editorPreviewPanelModeRaw, palette: palette)
 
             // Scroll sync icon
             Button {
                 scrollSync.toggleLinking()
             } label: {
                 ScrollSyncIcon(isLinked: scrollSync.isLinked)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(scrollSync.isLinked ? themeAccent : Color.secondary)
                     .opacity(syncHover ? 0.45 : 1.0)
                     .contentShape(Rectangle())
             }
@@ -925,7 +943,7 @@ private struct TitleBarIcons: View {
                 Image(systemName: "paintpalette")
                     .font(.system(size: 11.5, weight: .medium))
                     .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(isColorPanelVisible ? Color.accentColor : .secondary)
+                    .foregroundStyle(isColorPanelVisible ? themeAccent : Color.secondary)
                     .opacity(paletteHover ? 0.45 : 1.0)
                     .contentShape(Rectangle())
             }
@@ -942,6 +960,11 @@ private struct TitleBarIcons: View {
 
 private struct EditorPreviewPanelModeControl: View {
     @Binding var selection: String
+    let palette: ColorPalette
+
+    private var themeAccent: Color {
+        Color(hex: palette.themeAccent)
+    }
 
     var body: some View {
         HStack(spacing: 0) {
@@ -981,11 +1004,11 @@ private struct EditorPreviewPanelModeControl: View {
             Image(systemName: systemName)
                 .font(.system(size: 11, weight: .medium))
                 .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(isSelected ? Color.accentColor : .secondary)
+                .foregroundStyle(isSelected ? themeAccent : Color.secondary)
                 .frame(width: 24, height: 20)
                 .background(
                     RoundedRectangle(cornerRadius: 4, style: .continuous)
-                        .fill(isSelected ? Color.accentColor.opacity(0.16) : Color.clear)
+                        .fill(isSelected ? themeAccent.opacity(0.16) : Color.clear)
                 )
                 .contentShape(Rectangle())
         }

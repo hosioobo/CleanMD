@@ -20,6 +20,8 @@ struct ColorPalette: Codable, Equatable {
     var quoteBorder:  String = "#d0d7de"
     var link:         String = "#0969da"
 
+    var themeAccent: String { link }
+
     static let darkDefault = ColorPalette(
         editorBg:     "#1e1e1e",
         editorText:   "#e1e4e8",

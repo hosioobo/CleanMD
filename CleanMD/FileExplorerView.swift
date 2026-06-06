@@ -3,11 +3,17 @@ import AppKit
 
 struct FileExplorerView: View {
     @ObservedObject var store: FileExplorerStore
+    let palette: ColorPalette
     @Binding var isCollapsed: Bool
 
-    init(store: FileExplorerStore, isCollapsed: Binding<Bool>) {
+    init(store: FileExplorerStore, palette: ColorPalette, isCollapsed: Binding<Bool>) {
         _store = ObservedObject(wrappedValue: store)
+        self.palette = palette
         _isCollapsed = isCollapsed
+    }
+
+    private var themeAccent: Color {
+        Color(hex: palette.themeAccent)
     }
 
     var body: some View {
@@ -136,7 +142,7 @@ struct FileExplorerView: View {
             HStack(alignment: .top, spacing: 8) {
                 Image(systemName: item.isDirectory ? "folder" : "doc.text")
                     .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(item.isCurrentFile ? Color.accentColor : Color.secondary)
+                    .foregroundStyle(item.isCurrentFile ? themeAccent : Color.secondary)
                     .frame(width: 16, alignment: .leading)
 
                 VStack(alignment: .leading, spacing: 1) {
@@ -160,7 +166,7 @@ struct FileExplorerView: View {
             .padding(.vertical, 7)
             .background(
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .fill(item.isCurrentFile ? Color.accentColor.opacity(0.12) : Color.clear)
+                    .fill(item.isCurrentFile ? themeAccent.opacity(0.14) : Color.clear)
             )
         }
         .buttonStyle(.plain)
@@ -177,11 +183,11 @@ struct FileExplorerView: View {
         Button(action: action) {
             Image(systemName: systemName)
                 .font(.system(size: 12.5, weight: .semibold))
-                .foregroundStyle(isSelected ? Color.accentColor : Color.secondary)
+                .foregroundStyle(isSelected ? themeAccent : Color.secondary)
                 .frame(width: 24, height: 24)
                 .background(
                     RoundedRectangle(cornerRadius: 6, style: .continuous)
-                        .fill(isSelected ? Color.accentColor.opacity(0.12) : Color.clear)
+                        .fill(isSelected ? themeAccent.opacity(0.14) : Color.clear)
                 )
         }
         .buttonStyle(.plain)

@@ -34,21 +34,11 @@ final class ReloadConflictMonitor: ObservableObject {
     }
 
     func markResolved(currentText: String) {
-        self.currentText = currentText
-        baselineText = currentText
-        isKeepingCurrentVersion = false
-        state = .idle
-        pendingDiskText = nil
-        restartSource()
+        markSynchronized(currentText: currentText)
     }
 
     func markSaved(currentText: String) {
-        self.currentText = currentText
-        baselineText = currentText
-        isKeepingCurrentVersion = false
-        state = .idle
-        pendingDiskText = nil
-        restartSource()
+        markSynchronized(currentText: currentText)
     }
 
     func keepCurrentVersion() {
@@ -104,6 +94,15 @@ final class ReloadConflictMonitor: ObservableObject {
         source?.cancel()
         source = nil
         installSource(for: fileURL)
+    }
+
+    private func markSynchronized(currentText: String) {
+        self.currentText = currentText
+        baselineText = currentText
+        isKeepingCurrentVersion = false
+        state = .idle
+        pendingDiskText = nil
+        restartSource()
     }
 
     private func evaluateConflict() {

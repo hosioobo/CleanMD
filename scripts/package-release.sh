@@ -16,6 +16,6 @@ echo "▶ Building CleanMD.app for release..."
 NO_OPEN=1 "$PROJECT_DIR/build.sh"
 
 echo "▶ Packaging $(basename "$ZIP_PATH")..."
-ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" "$ZIP_PATH"
+ditto -c -k --norsrc --keepParent "$APP_PATH" "$ZIP_PATH"
 
 echo "✓ Created $ZIP_PATH"

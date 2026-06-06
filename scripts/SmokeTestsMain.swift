@@ -339,6 +339,12 @@ func testColorSettingsPresetApplyAndDetection() throws {
     try expect(settings.currentPreset == .custom, "manual palette edits should switch currentPreset to custom")
 }
 
+func testColorSettingsThemeAccentUsesLinkColor() throws {
+    let palette = ColorPalette(link: "#a14a3b")
+
+    try expect(palette.themeAccent == "#a14a3b", "theme accent should follow the palette link color")
+}
+
 func testAppearanceInspectorLayoutClamp() throws {
     try expect(
         AppearanceInspectorLayout.clampedWidth(200, totalWidth: 1600) == 340,
@@ -417,23 +423,6 @@ func testDocumentReloadingConfirmationPolicy() throws {
             reloadedText: "same text"
         ),
         "manual reload should not confirm when disk text matches editor contents"
-    )
-}
-
-func testDocumentReloadingConflictPolicy() throws {
-    try expect(
-        DocumentReloading.hasDiskConflict(
-            currentText: "local draft",
-            diskText: "external update"
-        ),
-        "reload button should appear when disk text differs from editor contents"
-    )
-    try expect(
-        !DocumentReloading.hasDiskConflict(
-            currentText: "same text",
-            diskText: "same text"
-        ),
-        "reload button should stay hidden when disk text matches editor contents"
     )
 }
 
@@ -628,6 +617,7 @@ enum SmokeTestsMain {
             ("ColorHexNormalization", testColorHexNormalization),
             ("ColorSettingsFlushPendingPersist", testColorSettingsFlushPendingPersist),
             ("ColorSettingsPresetApplyAndDetection", testColorSettingsPresetApplyAndDetection),
+            ("ColorSettingsThemeAccentUsesLinkColor", testColorSettingsThemeAccentUsesLinkColor),
             ("AppearanceInspectorLayoutClamp", testAppearanceInspectorLayoutClamp),
             ("ScrollSyncControllerStartsLinked", testScrollSyncControllerStartsLinked),
             ("ScrollSyncControllerSyncsPreviewByDefault", testScrollSyncControllerSyncsPreviewByDefault),
@@ -635,7 +625,6 @@ enum SmokeTestsMain {
             ("DocumentReloadingHandlesMissingFileURL", testDocumentReloadingHandlesMissingFileURL),
             ("DocumentReloadingSaveText", testDocumentReloadingSaveText),
             ("DocumentReloadingConfirmationPolicy", testDocumentReloadingConfirmationPolicy),
-            ("DocumentReloadingConflictPolicy", testDocumentReloadingConflictPolicy),
             ("DocumentReloadingExternalFileStatePolicy", testDocumentReloadingExternalFileStatePolicy),
             ("ReloadConflictMonitorTransitions", testReloadConflictMonitorTransitions),
             ("ReloadConflictMonitorKeepsCurrentStickyAcrossLaterDiskWrites", testReloadConflictMonitorKeepsCurrentStickyAcrossLaterDiskWrites),
