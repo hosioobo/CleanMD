@@ -11,6 +11,24 @@ final class MarkdownLinkDestinationNormalizerTests: XCTestCase {
         )
     }
 
+    func testWrapsRelativeImageDestinationContainingSpacesAndParentheses() {
+        let source = "![img](./Screenshot (1).png)"
+
+        XCTAssertEqual(
+            MarkdownLinkDestinationNormalizer.normalize(source),
+            "![img](<./Screenshot (1).png>)"
+        )
+    }
+
+    func testEscapedParenthesesDoNotCloseDestinationEarly() {
+        let source = "[draft](./file\\(draft\\) copy.md)"
+
+        XCTAssertEqual(
+            MarkdownLinkDestinationNormalizer.normalize(source),
+            "[draft](<./file\\(draft\\) copy.md>)"
+        )
+    }
+
     func testLeavesFencedCodeBlockUntouched() {
         let source = """
         ```md

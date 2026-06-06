@@ -1182,12 +1182,28 @@ struct PreviewView: NSViewRepresentable {
 
         func webView(_ webView: WKWebView, start urlSchemeTask: any WKURLSchemeTask) {
             guard let requestURL = urlSchemeTask.request.url,
-                  let fileURL = PreviewURLPolicy.fileURL(fromLocalPreviewURL: requestURL) else {
+                  let fileURL = PreviewURLPolicy.localPreviewResourceURL(
+                      fromLocalPreviewURL: requestURL,
+                      documentBaseURL: PreviewURLPolicy.documentBaseURL(for: parent.fileURL)
+                  ) else {
                 urlSchemeTask.didFailWithError(NSError(domain: NSURLErrorDomain, code: NSURLErrorBadURL))
                 return
             }
 
             do {
+                let values = try fileURL.resourceValues(forKeys: [.isRegularFileKey, .fileSizeKey])
+                guard values.isRegularFile == true else {
+                    urlSchemeTask.didFailWithError(NSError(domain: NSURLErrorDomain, code: NSURLErrorBadURL))
+                    return
+                }
+                if let fileSize = values.fileSize,
+                   fileSize > PreviewURLPolicy.maxPreviewResourceBytes {
+                    urlSchemeTask.didFailWithError(
+                        NSError(domain: NSURLErrorDomain, code: NSURLErrorDataLengthExceedsMaximum)
+                    )
+                    return
+                }
+
                 let data = try Data(contentsOf: fileURL)
                 let mimeType = PreviewURLPolicy.mimeType(for: fileURL, data: data)
                 let response = URLResponse(

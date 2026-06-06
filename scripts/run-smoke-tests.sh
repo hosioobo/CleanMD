@@ -26,6 +26,8 @@ swiftc \
   "$PROJECT_DIR/CleanMD/MarkdownLinkDestinationNormalizer.swift" \
   "$PROJECT_DIR/CleanMD/DocumentReloading.swift" \
   "$PROJECT_DIR/CleanMD/ReloadConflictMonitor.swift" \
+  "$PROJECT_DIR/CleanMD/EditorFindSupport.swift" \
+  "$PROJECT_DIR/CleanMD/EditorView.swift" \
   "$PROJECT_DIR/CleanMD/EditorPreviewPanelMode.swift" \
   "$PROJECT_DIR/CleanMD/PreviewURLPolicy.swift" \
   "$PROJECT_DIR/CleanMD/WindowFramePolicy.swift" \

@@ -4,6 +4,19 @@ All notable project updates are tracked here.
 
 ## Unreleased
 
+## v0.12.1 — 2026-06-06
+
+### Improved
+
+- Preview packaging now validates required JavaScript, CSS, and KaTeX font resources before producing app bundles.
+- Local preview resource loading now rejects oversized or non-regular files before reading them into memory.
+
+### Fixed
+
+- Editor selection ranges are now clamped after programmatic text replacement to avoid stale selection crashes.
+- Preview image loading now stays local by default and prevents local-preview URLs from escaping the document folder.
+- Markdown image destinations with spaces, escaped parentheses, or nested parentheses now normalize without truncating paths.
+
 ## v0.12.0 — 2026-06-05
 
 ### Added

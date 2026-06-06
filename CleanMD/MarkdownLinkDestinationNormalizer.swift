@@ -38,7 +38,10 @@ enum MarkdownLinkDestinationNormalizer {
                let openParenIndex = line.index(index, offsetBy: 1, limitedBy: line.endIndex),
                openParenIndex < line.endIndex,
                line[openParenIndex] == "(",
-               let closeParenIndex = line[openParenIndex...].firstIndex(of: ")") {
+               let closeParenIndex = destinationCloseParenIndex(
+                in: line,
+                startingAt: line.index(after: openParenIndex)
+               ) {
                 output.append(contentsOf: line[index...openParenIndex])
 
                 let destinationStart = line.index(after: openParenIndex)
@@ -55,6 +58,36 @@ enum MarkdownLinkDestinationNormalizer {
         }
 
         return output
+    }
+
+    private static func destinationCloseParenIndex(
+        in line: String,
+        startingAt destinationStart: String.Index
+    ) -> String.Index? {
+        var index = destinationStart
+        var nestedParenDepth = 0
+        var isEscaped = false
+
+        while index < line.endIndex {
+            let character = line[index]
+
+            if isEscaped {
+                isEscaped = false
+            } else if character == "\\" {
+                isEscaped = true
+            } else if character == "(" {
+                nestedParenDepth += 1
+            } else if character == ")" {
+                if nestedParenDepth == 0 {
+                    return index
+                }
+                nestedParenDepth -= 1
+            }
+
+            index = line.index(after: index)
+        }
+
+        return nil
     }
 
     private static func normalizedDestination(_ destination: String) -> String {

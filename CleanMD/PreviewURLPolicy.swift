@@ -15,13 +15,14 @@ enum PreviewNavigationAction: Equatable {
 
 enum PreviewURLPolicy {
     static let localFileScheme = "cleanmd-local"
+    static let maxPreviewResourceBytes = 25 * 1024 * 1024
 
     static func allowedSchemes(for kind: PreviewURLKind) -> [String] {
         switch kind {
         case .link:
             return ["http", "https", "mailto", "file"]
         case .image:
-            return ["http", "https", "file"]
+            return ["file"]
         }
     }
 
@@ -58,6 +59,25 @@ enum PreviewURLPolicy {
         var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
         components?.scheme = "file"
         return components?.url?.standardizedFileURL
+    }
+
+    static func localPreviewResourceURL(
+        fromLocalPreviewURL url: URL,
+        documentBaseURL: URL?
+    ) -> URL? {
+        guard let fileURL = fileURL(fromLocalPreviewURL: url),
+              let documentBaseURL,
+              documentBaseURL.isFileURL else {
+            return nil
+        }
+
+        let normalizedFileURL = fileURL.resolvingSymlinksInPath().standardizedFileURL
+        let normalizedBaseURL = documentBaseURL.resolvingSymlinksInPath().standardizedFileURL
+        guard isFileURL(normalizedFileURL, containedIn: normalizedBaseURL) else {
+            return nil
+        }
+
+        return fileURL
     }
 
     static func mimeType(for fileURL: URL, data: Data) -> String {
@@ -118,6 +138,15 @@ enum PreviewURLPolicy {
         }
 
         return URL(fileURLWithPath: rawPath, relativeTo: baseURL).standardizedFileURL
+    }
+
+    private static func isFileURL(_ fileURL: URL, containedIn directoryURL: URL) -> Bool {
+        let filePath = fileURL.path
+        var directoryPath = directoryURL.path
+        if !directoryPath.hasSuffix("/") {
+            directoryPath += "/"
+        }
+        return filePath.hasPrefix(directoryPath)
     }
 
     static func navigationAction(for url: URL, currentURL: URL?) -> PreviewNavigationAction {

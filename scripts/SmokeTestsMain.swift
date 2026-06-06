@@ -114,6 +114,16 @@ func testMarkdownLinkDestinationNormalizerWrapsLocalDestinationsWithSpaces() thr
     )
 }
 
+func testMarkdownLinkDestinationNormalizerHandlesParenthesizedLocalPaths() throws {
+    let source = "![img](./Screenshot (1).png)"
+    let expected = "![img](<./Screenshot (1).png>)"
+
+    try expect(
+        MarkdownLinkDestinationNormalizer.normalize(source) == expected,
+        "markdown preview should keep parenthesized local destinations intact"
+    )
+}
+
 func testRecentDocumentHistoryMerge() throws {
     let first = URL(fileURLWithPath: "/tmp/alpha.md")
     let second = URL(fileURLWithPath: "/tmp/beta.yaml")
@@ -254,6 +264,47 @@ func testPreviewURLPolicyRoundTripsLocalPreviewURLsWithSpaces() throws {
     )
 }
 
+func testPreviewURLPolicyRejectsRemoteImagesByDefault() throws {
+    try expect(
+        PreviewURLPolicy.resolvedURLString(
+            from: "https://example.com/tracker.png",
+            kind: .image,
+            documentBaseURL: nil
+        ) == nil,
+        "remote images should not auto-load in local previews"
+    )
+    try expect(
+        PreviewURLPolicy.resolvedURLString(
+            from: "https://example.com/page",
+            kind: .link,
+            documentBaseURL: nil
+        ) == "https://example.com/page",
+        "remote links should remain available for explicit navigation"
+    )
+}
+
+func testPreviewURLPolicyRestrictsLocalPreviewResourcesToDocumentFolder() throws {
+    let documentURL = URL(fileURLWithPath: "/tmp/docs/guide.md")
+    let documentBaseURL = PreviewURLPolicy.documentBaseURL(for: documentURL)
+    let insideURL = URL(fileURLWithPath: "/tmp/docs/images/diagram.png")
+    let outsideURL = URL(fileURLWithPath: "/tmp/secret.png")
+
+    try expect(
+        PreviewURLPolicy.localPreviewResourceURL(
+            fromLocalPreviewURL: PreviewURLPolicy.localPreviewURL(for: insideURL),
+            documentBaseURL: documentBaseURL
+        ) == insideURL.standardizedFileURL,
+        "local preview resources under the document folder should be allowed"
+    )
+    try expect(
+        PreviewURLPolicy.localPreviewResourceURL(
+            fromLocalPreviewURL: PreviewURLPolicy.localPreviewURL(for: outsideURL),
+            documentBaseURL: documentBaseURL
+        ) == nil,
+        "local preview resources outside the document folder should be rejected"
+    )
+}
+
 func testPreviewURLPolicyDetectsPNGDataWithoutExtension() throws {
     let fileURL = URL(fileURLWithPath: "/tmp/docs/image-without-extension")
     let data = Data([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00])
@@ -370,6 +421,24 @@ func testScrollSyncControllerSyncsPreviewByDefault() throws {
 
     try expect(syncedFractions.count == 1, "default linked controller should forward editor scroll to preview")
     try expect(abs(syncedFractions[0] - 0.42) < 0.0001, "forwarded preview fraction should match editor fraction")
+}
+
+func testEditorViewClampsSelectionAfterProgrammaticTextReplacement() throws {
+    let ranges = [
+        NSValue(range: NSRange(location: 100, length: 12)),
+        NSValue(range: NSRange(location: 2, length: 10))
+    ]
+
+    let clamped = EditorView.clampedSelectedRanges(ranges, textLength: 5)
+        .map(\.rangeValue)
+
+    try expect(
+        clamped == [
+            NSRange(location: 5, length: 0),
+            NSRange(location: 2, length: 3)
+        ],
+        "editor selection ranges should clamp to the replacement text length"
+    )
 }
 
 func testDocumentReloadingReadsLatestUTF8Text() throws {
@@ -606,11 +675,14 @@ enum SmokeTestsMain {
             ("MarkdownTableNormalizerLeavesIndentedCodeBlocksUntouched", testMarkdownTableNormalizerLeavesIndentedCodeBlocksUntouched),
             ("MarkdownTableNormalizerLeavesRawHTMLBlocksUntouched", testMarkdownTableNormalizerLeavesRawHTMLBlocksUntouched),
             ("MarkdownLinkDestinationNormalizerWrapsLocalDestinationsWithSpaces", testMarkdownLinkDestinationNormalizerWrapsLocalDestinationsWithSpaces),
+            ("MarkdownLinkDestinationNormalizerHandlesParenthesizedLocalPaths", testMarkdownLinkDestinationNormalizerHandlesParenthesizedLocalPaths),
             ("RecentDocumentHistory", testRecentDocumentHistoryMerge),
             ("FileExplorerStore", testFileExplorerStore),
             ("PreviewURLPolicyResolvesRelativeLocalURLs", testPreviewURLPolicyResolvesRelativeLocalURLs),
             ("PreviewURLPolicyOpensSupportedLocalFilesAsDocuments", testPreviewURLPolicyOpensSupportedLocalFilesAsDocuments),
             ("PreviewURLPolicyRoundTripsLocalPreviewURLsWithSpaces", testPreviewURLPolicyRoundTripsLocalPreviewURLsWithSpaces),
+            ("PreviewURLPolicyRejectsRemoteImagesByDefault", testPreviewURLPolicyRejectsRemoteImagesByDefault),
+            ("PreviewURLPolicyRestrictsLocalPreviewResourcesToDocumentFolder", testPreviewURLPolicyRestrictsLocalPreviewResourcesToDocumentFolder),
             ("PreviewURLPolicyDetectsPNGDataWithoutExtension", testPreviewURLPolicyDetectsPNGDataWithoutExtension),
             ("PreviewURLPolicyAllowsSameDocumentFragmentNavigation", testPreviewURLPolicyAllowsSameDocumentFragmentNavigation),
             ("WindowFramePolicyCascadesAdditionalWindows", testWindowFramePolicyCascadesAdditionalWindows),
@@ -621,6 +693,7 @@ enum SmokeTestsMain {
             ("AppearanceInspectorLayoutClamp", testAppearanceInspectorLayoutClamp),
             ("ScrollSyncControllerStartsLinked", testScrollSyncControllerStartsLinked),
             ("ScrollSyncControllerSyncsPreviewByDefault", testScrollSyncControllerSyncsPreviewByDefault),
+            ("EditorViewClampsSelectionAfterProgrammaticTextReplacement", testEditorViewClampsSelectionAfterProgrammaticTextReplacement),
             ("DocumentReloadingReadsLatestUTF8Text", testDocumentReloadingReadsLatestUTF8Text),
             ("DocumentReloadingHandlesMissingFileURL", testDocumentReloadingHandlesMissingFileURL),
             ("DocumentReloadingSaveText", testDocumentReloadingSaveText),

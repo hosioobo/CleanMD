@@ -82,7 +82,10 @@ struct EditorView: NSViewRepresentable {
         if textView.string != text {
             let selectedRanges = textView.selectedRanges
             textView.string = text
-            textView.selectedRanges = selectedRanges
+            textView.selectedRanges = Self.clampedSelectedRanges(
+                selectedRanges,
+                textLength: (text as NSString).length
+            )
         }
 
         // Appearance (dark/light system look)
@@ -108,6 +111,20 @@ struct EditorView: NSViewRepresentable {
                                      range: NSRange(location: 0, length: storage.length))
             }
         }
+    }
+
+    static func clampedSelectedRanges(_ ranges: [NSValue], textLength: Int) -> [NSValue] {
+        let upperBound = max(0, textLength)
+        let clampedRanges = ranges.map { value -> NSValue in
+            let range = value.rangeValue
+            let location = min(max(0, range.location), upperBound)
+            let length = min(max(0, range.length), upperBound - location)
+            return NSValue(range: NSRange(location: location, length: length))
+        }
+
+        return clampedRanges.isEmpty
+            ? [NSValue(range: NSRange(location: 0, length: 0))]
+            : clampedRanges
     }
 
     // MARK: - Coordinator

@@ -28,6 +28,53 @@ final class PreviewURLPolicyTests: XCTestCase {
         XCTAssertEqual(URL(string: resolved ?? "")?.standardizedFileURL, expectedURL)
     }
 
+    func testRejectsRemoteImagesByDefault() {
+        XCTAssertNil(
+            PreviewURLPolicy.resolvedURLString(
+                from: "https://example.com/tracker.png",
+                kind: .image,
+                documentBaseURL: nil
+            )
+        )
+
+        XCTAssertEqual(
+            PreviewURLPolicy.resolvedURLString(
+                from: "https://example.com/page",
+                kind: .link,
+                documentBaseURL: nil
+            ),
+            "https://example.com/page"
+        )
+    }
+
+    func testLocalPreviewResourceMustStayInsideDocumentFolder() {
+        let documentURL = URL(fileURLWithPath: "/tmp/docs/guide.md")
+        let documentBaseURL = PreviewURLPolicy.documentBaseURL(for: documentURL)
+        let insideURL = URL(fileURLWithPath: "/tmp/docs/images/diagram.png")
+        let outsideURL = URL(fileURLWithPath: "/tmp/secret.png")
+        let absoluteOutsideURL = URL(fileURLWithPath: "/etc/passwd")
+
+        XCTAssertEqual(
+            PreviewURLPolicy.localPreviewResourceURL(
+                fromLocalPreviewURL: PreviewURLPolicy.localPreviewURL(for: insideURL),
+                documentBaseURL: documentBaseURL
+            ),
+            insideURL.standardizedFileURL
+        )
+        XCTAssertNil(
+            PreviewURLPolicy.localPreviewResourceURL(
+                fromLocalPreviewURL: PreviewURLPolicy.localPreviewURL(for: outsideURL),
+                documentBaseURL: documentBaseURL
+            )
+        )
+        XCTAssertNil(
+            PreviewURLPolicy.localPreviewResourceURL(
+                fromLocalPreviewURL: PreviewURLPolicy.localPreviewURL(for: absoluteOutsideURL),
+                documentBaseURL: documentBaseURL
+            )
+        )
+    }
+
     func testResolvesRelativeImageAgainstDocumentFolderWithUnicodeAndSpaces() {
         let fileURL = URL(fileURLWithPath: "/tmp/docs/guide.md")
         let expectedURL = URL(fileURLWithPath: "/tmp/docs/이미지 폴더/테스트 이미지 #1.png").standardizedFileURL
