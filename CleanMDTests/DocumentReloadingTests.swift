@@ -38,24 +38,6 @@ final class DocumentReloadingTests: XCTestCase {
         )
     }
 
-    func testReloadRequiresConfirmationWhenDiskTextDiffersFromEditorText() {
-        XCTAssertTrue(
-            DocumentReloading.requiresReplacementConfirmation(
-                currentText: "local draft",
-                reloadedText: "external update"
-            )
-        )
-    }
-
-    func testReloadDoesNotRequireConfirmationWhenTextIsUnchanged() {
-        XCTAssertFalse(
-            DocumentReloading.requiresReplacementConfirmation(
-                currentText: "same text",
-                reloadedText: "same text"
-            )
-        )
-    }
-
     func testExternalStateIsIdleWhenDiskAndEditorMatch() {
         XCTAssertEqual(
             DocumentReloading.externalFileState(

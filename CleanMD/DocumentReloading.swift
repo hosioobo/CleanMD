@@ -61,10 +61,4 @@ enum DocumentReloading {
         return .conflict
     }
 
-    static func requiresReplacementConfirmation(
-        currentText: String,
-        reloadedText: String
-    ) -> Bool {
-        currentText != reloadedText
-    }
 }

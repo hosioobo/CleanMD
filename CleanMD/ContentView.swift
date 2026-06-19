@@ -9,7 +9,7 @@ struct ContentView: View {
     @StateObject private var scrollSync: ScrollSyncController
     @StateObject private var fileExplorerStore: FileExplorerStore
     @StateObject private var reloadConflictMonitor: ReloadConflictMonitor
-    @StateObject private var documentSaveCoordinator: DocumentSaveCoordinator
+    @State private var documentSaveCoordinator = DocumentSaveCoordinator()
     @AppStorage("isDarkMode") private var isDarkMode: Bool = false
     @SceneStorage("isSidebarCollapsed") private var isSidebarCollapsed: Bool = false
     @SceneStorage("editorPreviewPanelMode") private var editorPreviewPanelModeRaw: String = EditorPreviewPanelMode.both.rawValue
@@ -31,7 +31,6 @@ struct ContentView: View {
             wrappedValue: FileExplorerStore(currentFileURL: fileURL)
         )
         _reloadConflictMonitor = StateObject(wrappedValue: ReloadConflictMonitor())
-        _documentSaveCoordinator = StateObject(wrappedValue: DocumentSaveCoordinator())
     }
 
     var body: some View {
@@ -273,10 +272,7 @@ struct ContentView: View {
                 return
             }
 
-            if DocumentReloading.requiresReplacementConfirmation(
-                currentText: document.text,
-                reloadedText: reloadedText
-            ) {
+            if document.text != reloadedText {
                 guard confirmReloadReplacement() else { return }
             }
 

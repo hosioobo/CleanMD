@@ -1,7 +1,6 @@
 import AppKit
-import Combine
 
-final class DocumentSaveCoordinator: NSObject, ObservableObject {
+final class DocumentSaveCoordinator: NSObject {
     private var completions: [ObjectIdentifier: (Bool) -> Void] = [:]
 
     func save(_ document: NSDocument, completion: @escaping (Bool) -> Void) {

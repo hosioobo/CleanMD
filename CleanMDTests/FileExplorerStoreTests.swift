@@ -12,10 +12,7 @@ final class FileExplorerStoreTests: XCTestCase {
             dependencies: .init(
                 contentsOfDirectory: { _ in [] },
                 recentDocumentURLs: { [] },
-                openURL: { _ in },
-                pathSubtitle: { _ in "" },
-                isReadableSupportedFile: { _ in true },
-                isDirectory: { _ in false }
+                openURL: { _ in }
             )
         )
 
@@ -30,7 +27,6 @@ final class FileExplorerStoreTests: XCTestCase {
         let beta = folder.appendingPathComponent("beta.yaml")
         let gamma = folder.appendingPathComponent("gamma.txt")
         let hidden = folder.appendingPathComponent(".hidden.md")
-        let pathFormatter = PathDisplayFormatter()
 
         try FileManager.default.createDirectory(at: docs, withIntermediateDirectories: true)
         try FileManager.default.createDirectory(at: drafts, withIntermediateDirectories: true)
@@ -50,13 +46,7 @@ final class FileExplorerStoreTests: XCTestCase {
                     )
                 },
                 recentDocumentURLs: { [] },
-                openURL: { _ in },
-                pathSubtitle: { pathFormatter.parentPath(for: $0) },
-                isReadableSupportedFile: { SupportedDocumentKind.isSupportedReadableFile(url: $0) },
-                isDirectory: { url in
-                    var isDirectory: ObjCBool = false
-                    return FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory) && isDirectory.boolValue
-                }
+                openURL: { _ in }
             )
         )
 
@@ -73,7 +63,6 @@ final class FileExplorerStoreTests: XCTestCase {
         let noteB = folderB.appendingPathComponent("config.yaml")
         let markdown = folderA.appendingPathComponent("guide.md")
         let unsupported = folderB.appendingPathComponent("readme.txt")
-        let pathFormatter = PathDisplayFormatter()
 
         try "a".write(to: noteA, atomically: true, encoding: .utf8)
         try "b".write(to: noteB, atomically: true, encoding: .utf8)
@@ -85,10 +74,7 @@ final class FileExplorerStoreTests: XCTestCase {
             dependencies: .init(
                 contentsOfDirectory: { _ in [] },
                 recentDocumentURLs: { [noteA, unsupported, noteB, markdown, noteA] },
-                openURL: { _ in },
-                pathSubtitle: { pathFormatter.parentPath(for: $0) },
-                isReadableSupportedFile: { SupportedDocumentKind.isSupportedReadableFile(url: $0) },
-                isDirectory: { _ in false }
+                openURL: { _ in }
             )
         )
 
@@ -105,7 +91,6 @@ final class FileExplorerStoreTests: XCTestCase {
         let folder = try makeTempDirectory()
         let file = folder.appendingPathComponent("note.md")
         try "hello".write(to: file, atomically: true, encoding: .utf8)
-        let pathFormatter = PathDisplayFormatter()
 
         let store = FileExplorerStore(
             currentFileURL: file,
@@ -118,10 +103,7 @@ final class FileExplorerStoreTests: XCTestCase {
                     )
                 },
                 recentDocumentURLs: { [file] },
-                openURL: { _ in },
-                pathSubtitle: { pathFormatter.parentPath(for: $0) },
-                isReadableSupportedFile: { SupportedDocumentKind.isSupportedReadableFile(url: $0) },
-                isDirectory: { _ in false }
+                openURL: { _ in }
             )
         )
 
@@ -133,7 +115,6 @@ final class FileExplorerStoreTests: XCTestCase {
         let folder = try makeTempDirectory()
         let file = folder.appendingPathComponent("note.md")
         try "hello".write(to: file, atomically: true, encoding: .utf8)
-        let pathFormatter = PathDisplayFormatter()
 
         var openedURL: URL?
         let store = FileExplorerStore(
@@ -141,10 +122,7 @@ final class FileExplorerStoreTests: XCTestCase {
             dependencies: .init(
                 contentsOfDirectory: { _ in [] },
                 recentDocumentURLs: { [] },
-                openURL: { openedURL = $0 },
-                pathSubtitle: { pathFormatter.parentPath(for: $0) },
-                isReadableSupportedFile: { SupportedDocumentKind.isSupportedReadableFile(url: $0) },
-                isDirectory: { _ in false }
+                openURL: { openedURL = $0 }
             )
         )
 
@@ -172,10 +150,7 @@ final class FileExplorerStoreTests: XCTestCase {
             dependencies: .init(
                 contentsOfDirectory: { _ in [] },
                 recentDocumentURLs: { [] },
-                openURL: { openedURL = $0 },
-                pathSubtitle: { _ in "" },
-                isReadableSupportedFile: { SupportedDocumentKind.isSupportedReadableFile(url: $0) },
-                isDirectory: { _ in false }
+                openURL: { openedURL = $0 }
             )
         )
 
@@ -214,13 +189,7 @@ final class FileExplorerStoreTests: XCTestCase {
                     )
                 },
                 recentDocumentURLs: { [] },
-                openURL: { openedURL = $0 },
-                pathSubtitle: { _ in "" },
-                isReadableSupportedFile: { SupportedDocumentKind.isSupportedReadableFile(url: $0) },
-                isDirectory: { url in
-                    var isDirectory: ObjCBool = false
-                    return FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory) && isDirectory.boolValue
-                }
+                openURL: { openedURL = $0 }
             )
         )
 
@@ -260,13 +229,7 @@ final class FileExplorerStoreTests: XCTestCase {
                     )
                 },
                 recentDocumentURLs: { [] },
-                openURL: { _ in },
-                pathSubtitle: { _ in "" },
-                isReadableSupportedFile: { SupportedDocumentKind.isSupportedReadableFile(url: $0) },
-                isDirectory: { url in
-                    var isDirectory: ObjCBool = false
-                    return FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory) && isDirectory.boolValue
-                }
+                openURL: { _ in }
             )
         )
 
@@ -307,10 +270,7 @@ final class FileExplorerStoreTests: XCTestCase {
                 contentsOfDirectory: { _ in [] },
                 recentDocumentURLs: { [] },
                 openURL: { _ in },
-                recordRecentDocumentURL: { recordedURL = $0 },
-                pathSubtitle: { _ in "" },
-                isReadableSupportedFile: { SupportedDocumentKind.isSupportedReadableFile(url: $0) },
-                isDirectory: { _ in false }
+                recordRecentDocumentURL: { recordedURL = $0 }
             )
         )
 

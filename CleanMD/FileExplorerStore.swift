@@ -22,12 +22,8 @@ final class FileExplorerStore: ObservableObject {
         var recentDocumentURLs: () -> [URL]
         var openURL: (URL) -> Void
         var recordRecentDocumentURL: (URL) -> Void = { _ in }
-        var pathSubtitle: (URL) -> String
-        var isReadableSupportedFile: (URL) -> Bool
-        var isDirectory: (URL) -> Bool
 
         static func live() -> Self {
-            let pathFormatter = PathDisplayFormatter()
             return Self(
                 contentsOfDirectory: { url in
                     try FileManager.default.contentsOfDirectory(
@@ -44,15 +40,6 @@ final class FileExplorerStore: ObservableObject {
                 },
                 recordRecentDocumentURL: { url in
                     RecentDocumentHistory.shared.record(url)
-                },
-                pathSubtitle: { url in
-                    pathFormatter.parentPath(for: url)
-                },
-                isReadableSupportedFile: { url in
-                    SupportedDocumentKind.isSupportedReadableFile(url: url)
-                },
-                isDirectory: { url in
-                    FileExplorerStore.isDirectory(url)
                 }
             )
         }
@@ -151,10 +138,10 @@ final class FileExplorerStore: ObservableObject {
         }
 
         let filtered = files
-            .filter { dependencies.isDirectory($0) || dependencies.isReadableSupportedFile($0) }
+            .filter { Self.isDirectory($0) || SupportedDocumentKind.isSupportedReadableFile(url: $0) }
             .sorted { lhs, rhs in
-                let lhsIsDirectory = dependencies.isDirectory(lhs)
-                let rhsIsDirectory = dependencies.isDirectory(rhs)
+                let lhsIsDirectory = Self.isDirectory(lhs)
+                let rhsIsDirectory = Self.isDirectory(rhs)
                 if lhsIsDirectory != rhsIsDirectory {
                     return lhsIsDirectory
                 }
@@ -164,7 +151,7 @@ final class FileExplorerStore: ObservableObject {
         let normalizedCurrent = currentFileURL.map(Self.normalizedFileURL)
 
         return filtered.map { url in
-            let isDirectory = dependencies.isDirectory(url)
+            let isDirectory = Self.isDirectory(url)
             return FileExplorerItem(
                 id: url,
                 url: url,
@@ -180,9 +167,10 @@ final class FileExplorerStore: ObservableObject {
         let urls = dependencies.recentDocumentURLs()
         var seen = Set<String>()
         let normalizedCurrent = currentFileURL.map(Self.normalizedFileURL)
+        let pathFormatter = PathDisplayFormatter()
 
         return urls.compactMap { url in
-            guard dependencies.isReadableSupportedFile(url) else { return nil }
+            guard SupportedDocumentKind.isSupportedReadableFile(url: url) else { return nil }
 
             let normalized = Self.normalizedFileURL(url)
             let key = normalized.path
@@ -192,7 +180,7 @@ final class FileExplorerStore: ObservableObject {
                 id: normalized,
                 url: normalized,
                 title: normalized.lastPathComponent,
-                subtitle: dependencies.pathSubtitle(normalized),
+                subtitle: pathFormatter.parentPath(for: normalized),
                 isDirectory: false,
                 isCurrentFile: normalizedCurrent == normalized
             )
@@ -205,7 +193,7 @@ final class FileExplorerStore: ObservableObject {
 
     private func recordCurrentFileIfNeeded() {
         guard let currentFileURL else { return }
-        guard dependencies.isReadableSupportedFile(currentFileURL) else { return }
+        guard SupportedDocumentKind.isSupportedReadableFile(url: currentFileURL) else { return }
         dependencies.recordRecentDocumentURL(currentFileURL)
     }
 
