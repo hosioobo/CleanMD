@@ -4,6 +4,22 @@ All notable project updates are tracked here.
 
 ## Unreleased
 
+## v0.13.0 — 2026-07-01
+
+### Added
+
+- Preview settings now persist across opened files, including editor/preview panel mode, scroll sync, dark mode, and Appearance inspector state.
+
+### Improved
+
+- Markdown previews now avoid extra normalization work before debounce and coalesce in-flight worker renders while typing.
+- Preview panes now apply the selected background color before content rendering starts, reducing visible blank-state flashes.
+- Local Markdown previews can now load eligible nearby local image assets through the existing local preview resource policy.
+
+### Fixed
+
+- Preview startup now seeds the initial HTML background and text colors from the active palette instead of briefly falling back to white.
+
 ## v0.12.1 — 2026-06-06
 
 ### Improved
