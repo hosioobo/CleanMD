@@ -9,6 +9,12 @@ final class ScrollSyncControllerTests: XCTestCase {
         XCTAssertTrue(controller.isLinked)
     }
 
+    func testCanStartUnlinkedFromPreference() {
+        let controller = ScrollSyncController(isLinked: false)
+
+        XCTAssertFalse(controller.isLinked)
+    }
+
     func testEditorScrollSyncsPreviewByDefault() {
         let controller = ScrollSyncController()
         var syncedFractions: [CGFloat] = []

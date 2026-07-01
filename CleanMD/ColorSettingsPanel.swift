@@ -237,7 +237,7 @@ struct ColorSettingsPanel: View {
     @Binding var isVisible: Bool
     let availableHeight: CGFloat
     @ObservedObject private var cs = ColorSettings.shared
-    @AppStorage("isDarkMode") private var isDarkMode = false
+    @AppStorage(AppPreferenceKeys.isDarkMode) private var isDarkMode = false
 
     /// Active palette — follows app's dark/light toggle, not OS appearance.
     private var cp: ColorPalette { isDarkMode ? cs.darkPalette : cs.lightPalette }

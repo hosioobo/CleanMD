@@ -17,6 +17,7 @@ swiftc \
   -sdk "$SDK_PATH" \
   -F "$FRAMEWORKS_PATH" \
   "$PROJECT_DIR/CleanMD/SupportedDocumentKind.swift" \
+  "$PROJECT_DIR/CleanMD/AppPreferences.swift" \
   "$PROJECT_DIR/CleanMD/PathDisplayFormatter.swift" \
   "$PROJECT_DIR/CleanMD/ColorHex.swift" \
   "$PROJECT_DIR/CleanMD/ColorPlatformSupport.swift" \
@@ -26,10 +27,10 @@ swiftc \
   "$PROJECT_DIR/CleanMD/MarkdownLinkDestinationNormalizer.swift" \
   "$PROJECT_DIR/CleanMD/DocumentReloading.swift" \
   "$PROJECT_DIR/CleanMD/ReloadConflictMonitor.swift" \
-  "$PROJECT_DIR/CleanMD/EditorFindSupport.swift" \
   "$PROJECT_DIR/CleanMD/EditorView.swift" \
   "$PROJECT_DIR/CleanMD/EditorPreviewPanelMode.swift" \
   "$PROJECT_DIR/CleanMD/PreviewURLPolicy.swift" \
+  "$PROJECT_DIR/CleanMD/PreviewRenderScheduler.swift" \
   "$PROJECT_DIR/CleanMD/WindowFramePolicy.swift" \
   "$PROJECT_DIR/CleanMD/RecentDocumentHistory.swift" \
   "$PROJECT_DIR/CleanMD/FileExplorerStore.swift" \

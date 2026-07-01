@@ -1,3 +1,4 @@
+import Foundation
 import SwiftUI
 import AppKit
 import WebKit
@@ -29,11 +30,12 @@ struct PreviewView: NSViewRepresentable {
         let webView = WKWebView(frame: .zero, configuration: config)
         webView.navigationDelegate = context.coordinator
         webView.setValue(false, forKey: "drawsBackground")
+        webView.wantsLayer = true
         context.coordinator.webView = webView
         context.coordinator.applyColorScheme(isDarkMode, to: webView)
         context.coordinator.applyUnderPageBackground(palette.previewBg, to: webView)
 
-        let html = Self.htmlTemplate(resourceURL: Bundle.main.resourceURL)
+        let html = Self.htmlTemplate(resourceURL: Bundle.main.resourceURL, initialPalette: palette)
         if let resourceURL = Bundle.main.resourceURL {
             webView.loadHTMLString(html, baseURL: resourceURL)
         } else {
@@ -67,7 +69,10 @@ struct PreviewView: NSViewRepresentable {
 
     // MARK: - HTML Template
 
-    static func htmlTemplate(resourceURL: URL?) -> String {
+    static func htmlTemplate(
+        resourceURL: URL?,
+        initialPalette: ColorPalette = .lightDefault
+    ) -> String {
         let katexCSSURL = assetURLString(resourceURL: resourceURL, fileName: "katex.min.css")
         let highlightCSSURL = assetURLString(resourceURL: resourceURL, fileName: "highlight.min.css")
         let markedURL = assetURLString(resourceURL: resourceURL, fileName: "marked.min.js")
@@ -79,10 +84,18 @@ struct PreviewView: NSViewRepresentable {
         let localFileScheme = PreviewURLPolicy.localFileScheme
         let sharedRendererSource = sharedRendererJavaScript()
         let sharedRendererSourceLiteral = String(reflecting: sharedRendererSource)
+        let initialBackground = cssColorValue(
+            initialPalette.previewBg,
+            fallback: ColorPalette.lightDefault.previewBg
+        )
+        let initialText = cssColorValue(
+            initialPalette.previewText,
+            fallback: ColorPalette.lightDefault.previewText
+        )
 
         return """
         <!DOCTYPE html>
-        <html>
+        <html style="background: \(initialBackground);">
         <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -405,6 +418,8 @@ struct PreviewView: NSViewRepresentable {
         var latestRequestId = 0;
         var latestRequestedText = '';
         var latestRequestedMode = 'markdown';
+        var workerRenderInFlight = false;
+        var pendingWorkerRender = null;
         var hasRenderedFirstDocument = false;
 
         function ensureRenderWorker() {
@@ -454,20 +469,26 @@ struct PreviewView: NSViewRepresentable {
                 renderWorker.onmessage = function(event) {
                     var data = event.data || {};
                     if (data.type !== 'rendered') return;
-                    if (data.requestId !== latestRequestId) return; // drop stale renders
+                    workerRenderInFlight = false;
 
-                    var content = document.getElementById('content');
-                    if (!content) return;
-                    var mode = String(data.mode || latestRequestedMode || 'markdown');
-                    applyPreviewModeClass(mode);
-                    content.innerHTML = String(data.html || '');
-                    if (mode === 'markdown') {
-                        maybeRenderMath(content, latestRequestedText);
+                    if (data.requestId === latestRequestId) {
+                        var content = document.getElementById('content');
+                        if (content) {
+                            var mode = String(data.mode || latestRequestedMode || 'markdown');
+                            applyPreviewModeClass(mode);
+                            content.innerHTML = String(data.html || '');
+                            if (mode === 'markdown') {
+                                maybeRenderMath(content, latestRequestedText);
+                            }
+                        }
                     }
+                    flushPendingWorkerRender();
                 };
 
                 renderWorker.onerror = function() {
                     workerUnavailable = true;
+                    workerRenderInFlight = false;
+                    pendingWorkerRender = null;
                     if (renderWorker) {
                         renderWorker.terminate();
                         renderWorker = null;
@@ -499,6 +520,18 @@ struct PreviewView: NSViewRepresentable {
             }
         }
 
+        function postWorkerRender(request) {
+            workerRenderInFlight = true;
+            renderWorker.postMessage(request);
+        }
+
+        function flushPendingWorkerRender() {
+            if (!renderWorker || workerRenderInFlight || !pendingWorkerRender) return;
+            var request = pendingWorkerRender;
+            pendingWorkerRender = null;
+            postWorkerRender(request);
+        }
+
         function renderPreview(mode, text, documentBaseURL) {
             latestRequestedMode = String(mode || 'markdown');
             latestRequestedText = text;
@@ -523,17 +556,18 @@ struct PreviewView: NSViewRepresentable {
             }
 
             latestRequestId += 1;
-            renderWorker.postMessage({
+            var request = {
                 type: 'render',
                 requestId: latestRequestId,
                 mode: latestRequestedMode,
                 text: text,
                 documentBaseURL: cleanMDDocumentBaseURL
-            });
-        }
-
-        function renderMarkdown(text) {
-            renderPreview('markdown', text, cleanMDDocumentBaseURL);
+            };
+            if (workerRenderInFlight) {
+                pendingWorkerRender = request;
+                return;
+            }
+            postWorkerRender(request);
         }
 
         function applyPreviewModeClass(mode) {
@@ -556,6 +590,7 @@ struct PreviewView: NSViewRepresentable {
             r.setProperty('--quote-text',     c.quoteText);
             r.setProperty('--quote-border',   c.quoteBorder);
             r.setProperty('--link',           c.link);
+            document.documentElement.style.background = c.previewBg;
             document.body.style.background = c.previewBg;
             document.body.style.color = c.previewText;
         }
@@ -592,11 +627,15 @@ struct PreviewView: NSViewRepresentable {
         }, { passive: true });
         </script>
         </head>
-        <body>
+        <body style="background: \(initialBackground); color: \(initialText);">
         <div id="content"></div>
         </body>
         </html>
         """
+    }
+
+    private static func cssColorValue(_ rawValue: String, fallback: String) -> String {
+        ColorHex.normalize(rawValue) ?? fallback
     }
 
     private static func assetURLString(resourceURL: URL?, fileName: String) -> String {
@@ -616,10 +655,6 @@ struct PreviewView: NSViewRepresentable {
                     default:  return ch;
                 }
             });
-        }
-
-        function escapeAttribute(raw) {
-            return escapeHtml(raw);
         }
 
         function resolveSanitizedURL(rawValue, allowedSchemes) {
@@ -717,15 +752,15 @@ struct PreviewView: NSViewRepresentable {
                             text = escapeHtml(token && token.text ? token.text : '');
                         }
                         if (!href) return text;
-                        var title = token && token.title ? ' title="' + escapeAttribute(token.title) + '"' : '';
-                        return '<a href="' + escapeAttribute(href) + '"' + title + '>' + text + '</a>';
+                        var title = token && token.title ? ' title="' + escapeHtml(token.title) + '"' : '';
+                        return '<a href="' + escapeHtml(href) + '"' + title + '>' + text + '</a>';
                     },
                     image: function(token) {
                         var src = sanitizeImageSrc(token && token.href);
-                        var alt = escapeAttribute(token && token.text ? token.text : '');
+                        var alt = escapeHtml(token && token.text ? token.text : '');
                         if (!src) return alt;
-                        var title = token && token.title ? ' title="' + escapeAttribute(token.title) + '"' : '';
-                        return '<img src="' + escapeAttribute(src) + '" alt="' + alt + '"' + title + '>';
+                        var title = token && token.title ? ' title="' + escapeHtml(token.title) + '"' : '';
+                        return '<img src="' + escapeHtml(src) + '" alt="' + alt + '"' + title + '>';
                     },
                     code: function(token) {
                         var code = String(token && token.text ? token.text : '');
@@ -901,7 +936,7 @@ struct PreviewView: NSViewRepresentable {
             }
             if (lower.indexOf('http://') === 0 || lower.indexOf('https://') === 0) {
                 var href = sanitizeLinkHref(unquoted);
-                if (href) return '<a class="yaml-link-value" href="' + escapeAttribute(href) + '">' + escapeHtml(unquoted) + '</a>';
+                if (href) return '<a class="yaml-link-value" href="' + escapeHtml(href) + '">' + escapeHtml(unquoted) + '</a>';
             }
             return escapeHtml(unquoted);
         }
@@ -970,18 +1005,14 @@ struct PreviewView: NSViewRepresentable {
                 + '</section>\\n';
         }
 
-        function renderMarkdownPreviewHtml(text) {
-            setCodePreviewClass(false);
-            return marked.parse(text);
-        }
-
         function renderPreviewHtml(mode, text, cache, maxEntries) {
             var normalizedMode = String(mode || 'markdown');
             if (normalizedMode.indexOf('code:') === 0) {
                 var language = normalizedMode.slice(5);
                 return renderCodePreviewHtml(language, text, cache, maxEntries);
             }
-            return renderMarkdownPreviewHtml(text);
+            setCodePreviewClass(false);
+            return marked.parse(text);
         }
         """
     }
@@ -992,12 +1023,11 @@ struct PreviewView: NSViewRepresentable {
         var parent: PreviewView
         weak var webView: WKWebView?
 
+        private static let previewTimingEnabled = ProcessInfo.processInfo.environment["CLEANMD_PREVIEW_TIMING"] == "1"
+
         private var debounceTimer: Timer?
+        private var renderScheduler = PreviewRenderScheduler()
         private var isLoaded = false
-        private var pendingText: String?
-        private var pendingPreviewMode: PreviewMode = .markdown
-        private var queuedRenderKey: String?
-        private var lastRenderedRenderKey: String?
         private var pendingPalette: ColorPalette?
         private var pendingHeadingDividers: (Bool, Bool)?
         private var pendingDocumentBaseURLString: String?
@@ -1012,27 +1042,22 @@ struct PreviewView: NSViewRepresentable {
         }
 
         func scheduleRender(text: String, previewMode: PreviewMode, fileURL: URL?) {
-            let normalizedText = Self.normalizedText(text: text, previewMode: previewMode)
-            let documentBaseKey = PreviewURLPolicy.documentBaseURLAbsoluteString(for: fileURL) ?? ""
-            let renderKey = Self.renderKey(text: normalizedText, previewMode: previewMode, documentBaseKey: documentBaseKey)
-            guard renderKey != queuedRenderKey, renderKey != lastRenderedRenderKey else { return }
-            queuedRenderKey = renderKey
-            pendingText = normalizedText
-            pendingPreviewMode = previewMode
-            pendingDocumentBaseURLString = PreviewURLPolicy.documentBaseURLAbsoluteString(for: fileURL)
+            let input = PreviewRenderInput(
+                text: text,
+                previewMode: previewMode,
+                documentBaseURLString: PreviewURLPolicy.documentBaseURLAbsoluteString(for: fileURL)
+            )
+            guard renderScheduler.enqueue(input) else { return }
+            pendingDocumentBaseURLString = input.documentBaseURLString
             debounceTimer?.invalidate()
             guard isLoaded, let webView else { return }
             debounceTimer = Timer.scheduledTimer(
-                withTimeInterval: debounceInterval(for: normalizedText),
+                withTimeInterval: debounceInterval(for: input),
                 repeats: false
             ) { [weak self, weak webView] _ in
                 guard let self, let webView else { return }
-                self.render(text: normalizedText, previewMode: previewMode, in: webView)
+                self.render(input: input, in: webView)
             }
-        }
-
-        private static func renderKey(text: String, previewMode: PreviewMode, documentBaseKey: String) -> String {
-            "\(previewMode.renderKey)|\(documentBaseKey)|\(text)"
         }
 
         private static func normalizedText(text: String, previewMode: PreviewMode) -> String {
@@ -1046,8 +1071,8 @@ struct PreviewView: NSViewRepresentable {
             }
         }
 
-        private func debounceInterval(for text: String) -> TimeInterval {
-            let length = text.utf16.count
+        private func debounceInterval(for input: PreviewRenderInput) -> TimeInterval {
+            let length = input.debounceLength
             switch length {
             case ..<2_000:   return 0.08
             case ..<12_000:  return 0.12
@@ -1065,8 +1090,11 @@ struct PreviewView: NSViewRepresentable {
         func applyUnderPageBackground(_ hex: String, to webView: WKWebView) {
             guard hex != lastUnderPageBackgroundHex else { return }
             lastUnderPageBackgroundHex = hex
+            let color = NSColor(hex: hex)
+            webView.wantsLayer = true
+            webView.layer?.backgroundColor = color.cgColor
             if #available(macOS 12.0, *) {
-                webView.underPageBackgroundColor = NSColor(hex: hex)
+                webView.underPageBackgroundColor = color
             }
         }
 
@@ -1102,27 +1130,37 @@ struct PreviewView: NSViewRepresentable {
             webView.evaluateJavaScript("updateHeadingDividers(\(json));", completionHandler: nil)
         }
 
-        private func render(text: String, previewMode: PreviewMode, in webView: WKWebView) {
+        private func render(input: PreviewRenderInput, in webView: WKWebView) {
+            let normalizeStart = ProcessInfo.processInfo.systemUptime
+            let text = Self.normalizedText(text: input.text, previewMode: input.previewMode)
+            let normalizeMs = Self.milliseconds(since: normalizeStart)
+            let encodeStart = ProcessInfo.processInfo.systemUptime
             guard let data = try? JSONEncoder().encode(text),
                   let json = String(data: data, encoding: .utf8) else { return }
-            let renderKey = Self.renderKey(
-                text: text,
-                previewMode: previewMode,
-                documentBaseKey: pendingDocumentBaseURLString ?? ""
-            )
-            lastRenderedRenderKey = renderKey
-            queuedRenderKey = nil
-            let modeJSON = (try? JSONEncoder().encode(previewMode.renderKey))
+            let encodeMs = Self.milliseconds(since: encodeStart)
+            renderScheduler.markRendered(input)
+            let modeJSON = (try? JSONEncoder().encode(input.previewMode.renderKey))
                 .flatMap { String(data: $0, encoding: .utf8) } ?? "\"markdown\""
-            let documentBaseJSON = (try? JSONEncoder().encode(pendingDocumentBaseURLString))
+            let documentBaseJSON = (try? JSONEncoder().encode(input.documentBaseURLString))
                 .flatMap { String(data: $0, encoding: .utf8) } ?? "null"
+            let evaluateStart = ProcessInfo.processInfo.systemUptime
             webView.evaluateJavaScript(
                 "renderPreview(\(modeJSON), \(json), \(documentBaseJSON));"
             ) { _, error in
+                if Self.previewTimingEnabled {
+                    let evaluateMs = Self.milliseconds(since: evaluateStart)
+                    NSLog(
+                        "CleanMD preview timing mode=\(input.previewMode.renderKey) chars=\(input.debounceLength) normalizeMs=\(String(format: "%.2f", normalizeMs)) encodeMs=\(String(format: "%.2f", encodeMs)) evaluateMs=\(String(format: "%.2f", evaluateMs))"
+                    )
+                }
                 if let error {
                     NSLog("CleanMD renderPreview JavaScript error: \(error.localizedDescription)")
                 }
             }
+        }
+
+        private static func milliseconds(since start: TimeInterval) -> Double {
+            (ProcessInfo.processInfo.systemUptime - start) * 1_000
         }
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
@@ -1134,15 +1172,15 @@ struct PreviewView: NSViewRepresentable {
                     .flatMap { String(data: $0, encoding: .utf8) } ?? "null"
                 webView.evaluateJavaScript("updateDocumentBaseURL(\(json));", completionHandler: nil)
             }
-            if let text = pendingText {
-                render(text: text, previewMode: pendingPreviewMode, in: webView)
-            }
             applyColorScheme(parent.isDarkMode, to: webView)
             applyPalette(pendingPalette ?? parent.palette, to: webView)
             let pending = pendingHeadingDividers ?? (parent.showH1Divider, parent.showH2Divider)
             applyHeadingDividers(showH1: pending.0, showH2: pending.1, to: webView)
             pendingPalette = nil
             pendingHeadingDividers = nil
+            if let input = renderScheduler.pendingInput {
+                render(input: input, in: webView)
+            }
         }
 
         func webView(_ webView: WKWebView,

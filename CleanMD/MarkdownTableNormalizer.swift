@@ -78,7 +78,8 @@ enum MarkdownTableNormalizer {
 
                 if let currentPendingRow = pendingRow {
                     if splitTableCells(currentPendingRow).count < expectedColumnCount {
-                        self.pendingRowMerge(&pendingRow, with: line)
+                        let separator = currentPendingRow.last.map(\.isWhitespace) == true ? "" : " "
+                        pendingRow = currentPendingRow + separator + line.trimmingCharacters(in: .whitespaces)
                         index += 1
                         continue
                     }
@@ -90,7 +91,7 @@ enum MarkdownTableNormalizer {
                         break
                     }
 
-                    self.pendingRowSet(&pendingRow, to: line)
+                    pendingRow = line
                     index += 1
                     continue
                 }
@@ -99,7 +100,7 @@ enum MarkdownTableNormalizer {
                     break
                 }
 
-                self.pendingRowSet(&pendingRow, to: line)
+                pendingRow = line
                 index += 1
             }
 
@@ -246,17 +247,4 @@ enum MarkdownTableNormalizer {
         return false
     }
 
-    private static func pendingRowMerge(_ pendingRow: inout String?, with line: String) {
-        guard let current = pendingRow else {
-            pendingRow = line
-            return
-        }
-
-        let separator = current.last.map(\.isWhitespace) == true ? "" : " "
-        pendingRow = current + separator + line.trimmingCharacters(in: .whitespaces)
-    }
-
-    private static func pendingRowSet(_ pendingRow: inout String?, to line: String) {
-        pendingRow = line
-    }
 }

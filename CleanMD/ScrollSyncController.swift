@@ -1,7 +1,7 @@
 import Foundation
 
 final class ScrollSyncController: ObservableObject {
-    @Published private(set) var isLinked: Bool = true
+    @Published private(set) var isLinked: Bool
 
     var onScrollEditorTo: ((CGFloat) -> Void)?
     var onScrollPreviewTo: ((CGFloat) -> Void)?
@@ -17,6 +17,11 @@ final class ScrollSyncController: ObservableObject {
     private var lastKnownEditorFraction: CGFloat = 0
     private var lastKnownPreviewFraction: CGFloat = 0
     private var pendingFirstScrollCalibration = true
+
+    init(isLinked: Bool = true) {
+        self.isLinked = isLinked
+        pendingFirstScrollCalibration = isLinked
+    }
 
     func toggleLinking() {
         setLinked(!isLinked)

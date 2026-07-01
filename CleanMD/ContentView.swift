@@ -10,11 +10,12 @@ struct ContentView: View {
     @StateObject private var fileExplorerStore: FileExplorerStore
     @StateObject private var reloadConflictMonitor: ReloadConflictMonitor
     @State private var documentSaveCoordinator = DocumentSaveCoordinator()
-    @AppStorage("isDarkMode") private var isDarkMode: Bool = false
+    @AppStorage(AppPreferenceKeys.isDarkMode) private var isDarkMode: Bool = false
     @SceneStorage("isSidebarCollapsed") private var isSidebarCollapsed: Bool = false
-    @SceneStorage("editorPreviewPanelMode") private var editorPreviewPanelModeRaw: String = EditorPreviewPanelMode.both.rawValue
-    @State private var isColorPanelVisible: Bool = false
-    @SceneStorage("appearanceInspectorWidth") private var appearanceInspectorWidth: Double = Double(AppearanceInspectorLayout.defaultWidth)
+    @AppStorage(AppPreferenceKeys.editorPreviewPanelMode) private var editorPreviewPanelModeRaw: String = EditorPreviewPanelMode.both.rawValue
+    @AppStorage(AppPreferenceKeys.isAppearanceInspectorVisible) private var isColorPanelVisible: Bool = false
+    @AppStorage(AppPreferenceKeys.appearanceInspectorWidth) private var appearanceInspectorWidth: Double = Double(AppearanceInspectorLayout.defaultWidth)
+    @AppStorage(AppPreferenceKeys.isScrollSyncLinked) private var isScrollSyncLinked: Bool = true
     @State private var isDragTargeted = false
     @State private var inspectorDragStartWidth: CGFloat?
     @State private var inspectorResizeCursorActive = false
@@ -26,7 +27,9 @@ struct ContentView: View {
     init(document: Binding<MarkdownDocument>, fileURL: URL?) {
         self._document = document
         self.fileURL = fileURL
-        _scrollSync = StateObject(wrappedValue: ScrollSyncController())
+        _scrollSync = StateObject(
+            wrappedValue: ScrollSyncController(isLinked: AppPreferences.scrollSyncIsLinked())
+        )
         _fileExplorerStore = StateObject(
             wrappedValue: FileExplorerStore(currentFileURL: fileURL)
         )
@@ -57,8 +60,16 @@ struct ContentView: View {
             onReloadFromDisk: handleReloadCue
         ))
         .onAppear {
+            scrollSync.setLinked(isScrollSyncLinked)
             fileExplorerStore.updateCurrentFileURL(fileURL)
             reloadConflictMonitor.start(fileURL: fileURL, currentText: document.text)
+        }
+        .onChange(of: isScrollSyncLinked) { newValue in
+            scrollSync.setLinked(newValue)
+        }
+        .onReceive(scrollSync.$isLinked) { linked in
+            guard isScrollSyncLinked != linked else { return }
+            isScrollSyncLinked = linked
         }
         .onChange(of: fileURL) { newValue in
             fileExplorerStore.updateCurrentFileURL(newValue)
@@ -241,6 +252,7 @@ struct ContentView: View {
             showH2Divider: colorSettings.showH2Divider,
             fileURL: fileURL
         )
+        .background(Color(hex: activePalette.previewBg))
     }
 
     private var editorPreviewPanelMode: EditorPreviewPanelMode {
@@ -632,10 +644,6 @@ private final class SplitViewCoordinator: NSObject, NSSplitViewDelegate {
         return splitView.subviews[0].frame.width
     }
 
-    private func clampedLeftWidth(_ proposed: CGFloat, totalWidth: CGFloat) -> CGFloat {
-        clampedExpandedLeftWidth(proposed, totalWidth: totalWidth)
-    }
-
     private func clampedExpandedLeftWidth(_ proposed: CGFloat, totalWidth: CGFloat) -> CGFloat {
         let minimum = min(layout.minLeftWidth, max(0, totalWidth - layout.minRightWidth))
         let maximum = max(minimum, totalWidth - layout.minRightWidth)
@@ -862,7 +870,7 @@ private struct WindowConfigurator: NSViewRepresentable {
 // MARK: - Title-bar icons
 
 private struct TitleBarIcons: View {
-    @AppStorage("isDarkMode") private var isDarkMode: Bool = false
+    @AppStorage(AppPreferenceKeys.isDarkMode) private var isDarkMode: Bool = false
     let palette: ColorPalette
     @ObservedObject var scrollSync: ScrollSyncController
     @Binding var isColorPanelVisible: Bool

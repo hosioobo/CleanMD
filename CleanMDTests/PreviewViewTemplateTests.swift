@@ -2,6 +2,50 @@ import XCTest
 @testable import CleanMD
 
 final class PreviewViewTemplateTests: XCTestCase {
+    func testPreviewRenderSchedulerDeduplicatesQueuedAndRenderedInputs() {
+        var scheduler = PreviewRenderScheduler()
+        let input = PreviewRenderInput(
+            text: "# Title",
+            previewMode: .markdown,
+            documentBaseURLString: "file:///tmp/docs/"
+        )
+
+        XCTAssertTrue(scheduler.enqueue(input))
+        XCTAssertFalse(scheduler.enqueue(input))
+        XCTAssertEqual(scheduler.pendingInput, input)
+
+        scheduler.markRendered(input)
+        XCTAssertFalse(scheduler.enqueue(input))
+        XCTAssertTrue(
+            scheduler.enqueue(
+                PreviewRenderInput(
+                    text: "# Title\n\nchanged",
+                    previewMode: .markdown,
+                    documentBaseURLString: input.documentBaseURLString
+                )
+            )
+        )
+    }
+
+    func testPreviewWorkerCoalescesIntermediateRenders() {
+        let html = PreviewView.htmlTemplate(resourceURL: nil)
+
+        XCTAssertTrue(html.contains("var workerRenderInFlight = false;"))
+        XCTAssertTrue(html.contains("var pendingWorkerRender = null;"))
+        XCTAssertTrue(html.contains("pendingWorkerRender = request;"))
+        XCTAssertTrue(html.contains("flushPendingWorkerRender();"))
+        XCTAssertFalse(html.contains("function renderMarkdown(text)"))
+    }
+
+    func testTemplateSeedsInitialPreviewColorsBeforeJavaScriptRuns() {
+        let palette = ColorPalette(previewBg: "#191614", previewText: "#e9e0d3")
+        let html = PreviewView.htmlTemplate(resourceURL: nil, initialPalette: palette)
+
+        XCTAssertTrue(html.contains("<html style=\"background: #191614;\">"))
+        XCTAssertTrue(html.contains("<body style=\"background: #191614; color: #e9e0d3;\">"))
+        XCTAssertTrue(html.contains("document.documentElement.style.background = c.previewBg;"))
+    }
+
     func testYamlCodePreviewUsesReadableDocumentFrame() {
         let html = PreviewView.htmlTemplate(resourceURL: nil)
 

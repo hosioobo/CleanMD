@@ -17,11 +17,6 @@ func makeTempDirectory() throws -> URL {
     return url.standardizedFileURL
 }
 
-func isDirectory(_ url: URL) -> Bool {
-    var value: ObjCBool = false
-    return FileManager.default.fileExists(atPath: url.path, isDirectory: &value) && value.boolValue
-}
-
 func testSupportedDocumentKind() throws {
     try expect(SupportedDocumentKind(url: URL(fileURLWithPath: "/tmp/a.md")) == .markdown, "md should map to markdown")
     try expect(SupportedDocumentKind(url: URL(fileURLWithPath: "/tmp/a.MARKDOWN")) == .markdown, "MARKDOWN should be case-insensitive")
@@ -156,7 +151,6 @@ func testFileExplorerStore() throws {
     try "value: true".write(to: beta, atomically: true, encoding: .utf8)
     try "unsupported".write(to: gamma, atomically: true, encoding: .utf8)
 
-    let formatter = PathDisplayFormatter(homeDirectory: folder.deletingLastPathComponent())
     var openedURL: URL?
 
     let store = FileExplorerStore(
@@ -170,17 +164,20 @@ func testFileExplorerStore() throws {
                 )
             },
             recentDocumentURLs: { [alpha, gamma, beta, alpha] },
-            openURL: { openedURL = $0 },
-            pathSubtitle: { formatter.parentPath(for: $0) },
-            isReadableSupportedFile: { SupportedDocumentKind.isSupportedReadableFile(url: $0) },
-            isDirectory: { isDirectory($0) }
+            openURL: { openedURL = $0 }
         )
     )
 
     try expect(store.currentFolderURL == folder, "current folder should derive from current file")
-    try expect(store.folderItems.map(\.title) == ["docs", "nested", "alpha.md", "beta.yaml"], "folder view should show directories first and supported files only")
+    try expect(
+        store.folderItems.map { $0.title } == ["docs", "nested", "alpha.md", "beta.yaml"],
+        "folder view should show directories first and supported files only"
+    )
     try expect(store.folderItems[2].isCurrentFile, "current file should be highlighted in folder list")
-    try expect(store.historyItems.map(\.title) == ["alpha.md", "beta.yaml"], "history should filter unsupported files and deduplicate")
+    try expect(
+        store.historyItems.map { $0.title } == ["alpha.md", "beta.yaml"],
+        "history should filter unsupported files and deduplicate"
+    )
 
     store.activate(store.folderItems[0])
     try expect(openedURL == nil, "activating a directory should not open a document")
@@ -208,10 +205,7 @@ func testFileExplorerStore() throws {
             contentsOfDirectory: { _ in [] },
             recentDocumentURLs: { [] },
             openURL: { _ in },
-            recordRecentDocumentURL: { recordedURL = $0 },
-            pathSubtitle: { formatter.parentPath(for: $0) },
-            isReadableSupportedFile: { SupportedDocumentKind.isSupportedReadableFile(url: $0) },
-            isDirectory: { isDirectory($0) }
+            recordRecentDocumentURL: { recordedURL = $0 }
         )
     )
 
@@ -288,6 +282,10 @@ func testPreviewURLPolicyRestrictsLocalPreviewResourcesToDocumentFolder() throws
     let documentBaseURL = PreviewURLPolicy.documentBaseURL(for: documentURL)
     let insideURL = URL(fileURLWithPath: "/tmp/docs/images/diagram.png")
     let outsideURL = URL(fileURLWithPath: "/tmp/secret.png")
+    let scrapedDocumentURL = URL(fileURLWithPath: "/tmp/archive/project/md/guide.md")
+    let scrapedDocumentBaseURL = PreviewURLPolicy.documentBaseURL(for: scrapedDocumentURL)
+    let siblingAssetURL = URL(fileURLWithPath: "/tmp/archive/project/assets/guide/image-01.jpg")
+    let siblingOutsideURL = URL(fileURLWithPath: "/tmp/archive/other/image-01.jpg")
 
     try expect(
         PreviewURLPolicy.localPreviewResourceURL(
@@ -302,6 +300,20 @@ func testPreviewURLPolicyRestrictsLocalPreviewResourcesToDocumentFolder() throws
             documentBaseURL: documentBaseURL
         ) == nil,
         "local preview resources outside the document folder should be rejected"
+    )
+    try expect(
+        PreviewURLPolicy.localPreviewResourceURL(
+            fromLocalPreviewURL: PreviewURLPolicy.localPreviewURL(for: siblingAssetURL),
+            documentBaseURL: scrapedDocumentBaseURL
+        ) == siblingAssetURL.standardizedFileURL,
+        "scraped markdown under md should allow sibling assets from the same export folder"
+    )
+    try expect(
+        PreviewURLPolicy.localPreviewResourceURL(
+            fromLocalPreviewURL: PreviewURLPolicy.localPreviewURL(for: siblingOutsideURL),
+            documentBaseURL: scrapedDocumentBaseURL
+        ) == nil,
+        "scraped markdown preview resources should stay inside the same export folder"
     )
 }
 
@@ -323,6 +335,47 @@ func testPreviewURLPolicyAllowsSameDocumentFragmentNavigation() throws {
         PreviewURLPolicy.navigationAction(for: targetURL, currentURL: currentURL) == .allowInPlace,
         "same-document fragment navigation should stay in place"
     )
+}
+
+func testPreviewRenderSchedulerDeduplicatesQueuedAndRenderedInputs() throws {
+    var scheduler = PreviewRenderScheduler()
+    let input = PreviewRenderInput(
+        text: "# Title",
+        previewMode: .markdown,
+        documentBaseURLString: "file:///tmp/docs/"
+    )
+
+    try expect(scheduler.enqueue(input), "first preview render input should be queued")
+    try expect(!scheduler.enqueue(input), "duplicate queued input should not schedule another render")
+    try expect(scheduler.pendingInput == input, "queued input should remain pending")
+
+    scheduler.markRendered(input)
+    try expect(!scheduler.enqueue(input), "already rendered input should not schedule another render")
+    try expect(
+        scheduler.enqueue(
+            PreviewRenderInput(
+                text: "# Title\n\nchanged",
+                previewMode: .markdown,
+                documentBaseURLString: input.documentBaseURLString
+            )
+        ),
+        "changed text should schedule a new render"
+    )
+}
+
+func testPreviewWorkerCoalescesIntermediateRenders() throws {
+    guard let projectDir = ProcessInfo.processInfo.environment["PROJECT_DIR"] else {
+        throw SmokeTestFailure(message: "PROJECT_DIR is required for preview source smoke tests")
+    }
+    let sourceURL = URL(fileURLWithPath: projectDir)
+        .appendingPathComponent("CleanMD/PreviewView.swift")
+    let source = try String(contentsOf: sourceURL, encoding: .utf8)
+
+    try expect(source.contains("var workerRenderInFlight = false;"), "preview worker should track in-flight renders")
+    try expect(source.contains("var pendingWorkerRender = null;"), "preview worker should keep only latest pending render")
+    try expect(source.contains("pendingWorkerRender = request;"), "preview worker should replace pending render requests")
+    try expect(source.contains("flushPendingWorkerRender();"), "preview worker should flush latest pending render after completion")
+    try expect(!source.contains("function renderMarkdown(text)"), "unused renderMarkdown shim should stay deleted")
 }
 
 func testWindowFramePolicyCascadesAdditionalWindows() throws {
@@ -407,9 +460,42 @@ func testAppearanceInspectorLayoutClamp() throws {
     )
 }
 
+func testAppPreferencesScrollSyncDefaultsLinked() throws {
+    let suiteName = "AppPreferencesSmoke.\(UUID().uuidString)"
+    guard let defaults = UserDefaults(suiteName: suiteName) else {
+        throw SmokeTestFailure(message: "Could not create defaults suite")
+    }
+    defer { defaults.removePersistentDomain(forName: suiteName) }
+
+    try expect(
+        AppPreferences.scrollSyncIsLinked(defaults: defaults),
+        "scroll sync should default to linked when no preference has been stored"
+    )
+}
+
+func testAppPreferencesScrollSyncReadsStoredValue() throws {
+    let suiteName = "AppPreferencesSmoke.\(UUID().uuidString)"
+    guard let defaults = UserDefaults(suiteName: suiteName) else {
+        throw SmokeTestFailure(message: "Could not create defaults suite")
+    }
+    defer { defaults.removePersistentDomain(forName: suiteName) }
+
+    defaults.set(false, forKey: AppPreferenceKeys.isScrollSyncLinked)
+
+    try expect(
+        !AppPreferences.scrollSyncIsLinked(defaults: defaults),
+        "scroll sync should honor an explicitly stored disabled preference"
+    )
+}
+
 func testScrollSyncControllerStartsLinked() throws {
     let controller = ScrollSyncController()
     try expect(controller.isLinked, "scroll sync should start linked by default")
+}
+
+func testScrollSyncControllerCanStartUnlinked() throws {
+    let controller = ScrollSyncController(isLinked: false)
+    try expect(!controller.isLinked, "scroll sync should allow stored preferences to start unlinked")
 }
 
 func testScrollSyncControllerSyncsPreviewByDefault() throws {
@@ -475,23 +561,6 @@ func testDocumentReloadingSaveText() throws {
     try expect(
         savedText == "# Mine\n",
         "saveText should write UTF-8 text to disk"
-    )
-}
-
-func testDocumentReloadingConfirmationPolicy() throws {
-    try expect(
-        DocumentReloading.requiresReplacementConfirmation(
-            currentText: "local draft",
-            reloadedText: "external update"
-        ),
-        "manual reload should confirm before replacing different editor contents"
-    )
-    try expect(
-        !DocumentReloading.requiresReplacementConfirmation(
-            currentText: "same text",
-            reloadedText: "same text"
-        ),
-        "manual reload should not confirm when disk text matches editor contents"
     )
 }
 
@@ -626,6 +695,79 @@ func testReloadConflictMonitorDetectsUnavailableFile() throws {
     )
 }
 
+func testContentViewPersistsGlobalUIPreferences() throws {
+    guard let projectDir = ProcessInfo.processInfo.environment["PROJECT_DIR"] else {
+        throw SmokeTestFailure(message: "PROJECT_DIR is required for source policy tests")
+    }
+
+    let sourceURL = URL(fileURLWithPath: projectDir)
+        .appendingPathComponent("CleanMD/ContentView.swift")
+    let source = try String(contentsOf: sourceURL, encoding: .utf8)
+
+    try expect(
+        source.contains("@AppStorage(AppPreferenceKeys.editorPreviewPanelMode)"),
+        "editor/preview panel mode should be an app-level preference"
+    )
+    try expect(
+        source.contains("@AppStorage(AppPreferenceKeys.isScrollSyncLinked)"),
+        "scroll sync should be an app-level preference"
+    )
+    try expect(
+        source.contains("@AppStorage(AppPreferenceKeys.isAppearanceInspectorVisible)"),
+        "appearance inspector visibility should persist across opened files"
+    )
+    try expect(
+        source.contains("@AppStorage(AppPreferenceKeys.appearanceInspectorWidth)"),
+        "appearance inspector width should persist across opened files"
+    )
+    try expect(
+        !source.contains("@SceneStorage(\"editorPreviewPanelMode\")"),
+        "panel mode should not be scoped to a single scene"
+    )
+}
+
+func testPreviewBackgroundAppliesBeforeRender() throws {
+    guard let projectDir = ProcessInfo.processInfo.environment["PROJECT_DIR"] else {
+        throw SmokeTestFailure(message: "PROJECT_DIR is required for source policy tests")
+    }
+
+    let contentSourceURL = URL(fileURLWithPath: projectDir)
+        .appendingPathComponent("CleanMD/ContentView.swift")
+    let previewSourceURL = URL(fileURLWithPath: projectDir)
+        .appendingPathComponent("CleanMD/PreviewView.swift")
+    let contentSource = try String(contentsOf: contentSourceURL, encoding: .utf8)
+    let previewSource = try String(contentsOf: previewSourceURL, encoding: .utf8)
+
+    try expect(
+        contentSource.contains(".background(Color(hex: activePalette.previewBg))"),
+        "preview panel container should receive the preview background before HTML render"
+    )
+    try expect(
+        previewSource.contains("htmlTemplate(resourceURL: Bundle.main.resourceURL, initialPalette: palette)"),
+        "preview HTML should be seeded with the current palette before JavaScript runs"
+    )
+    try expect(
+        previewSource.contains("<html style=\"background: \\(initialBackground);\">"),
+        "preview HTML root should receive an initial background color"
+    )
+    try expect(
+        previewSource.contains("<body style=\"background: \\(initialBackground); color: \\(initialText);\">"),
+        "preview HTML body should receive initial background and text colors"
+    )
+    try expect(
+        previewSource.contains("webView.wantsLayer = true"),
+        "preview web view should have a layer-backed background"
+    )
+    try expect(
+        previewSource.contains("webView.layer?.backgroundColor = color.cgColor"),
+        "preview web view layer background should follow the palette"
+    )
+    try expect(
+        previewSource.contains("document.documentElement.style.background = c.previewBg;"),
+        "preview HTML root background should update with later palette changes"
+    )
+}
+
 func testSaveMineUsesDocumentSaveCoordinator() throws {
     guard let projectDir = ProcessInfo.processInfo.environment["PROJECT_DIR"] else {
         throw SmokeTestFailure(message: "PROJECT_DIR is required for source policy tests")
@@ -685,23 +827,29 @@ enum SmokeTestsMain {
             ("PreviewURLPolicyRestrictsLocalPreviewResourcesToDocumentFolder", testPreviewURLPolicyRestrictsLocalPreviewResourcesToDocumentFolder),
             ("PreviewURLPolicyDetectsPNGDataWithoutExtension", testPreviewURLPolicyDetectsPNGDataWithoutExtension),
             ("PreviewURLPolicyAllowsSameDocumentFragmentNavigation", testPreviewURLPolicyAllowsSameDocumentFragmentNavigation),
+            ("PreviewRenderSchedulerDeduplicatesQueuedAndRenderedInputs", testPreviewRenderSchedulerDeduplicatesQueuedAndRenderedInputs),
+            ("PreviewWorkerCoalescesIntermediateRenders", testPreviewWorkerCoalescesIntermediateRenders),
             ("WindowFramePolicyCascadesAdditionalWindows", testWindowFramePolicyCascadesAdditionalWindows),
             ("ColorHexNormalization", testColorHexNormalization),
             ("ColorSettingsFlushPendingPersist", testColorSettingsFlushPendingPersist),
             ("ColorSettingsPresetApplyAndDetection", testColorSettingsPresetApplyAndDetection),
             ("ColorSettingsThemeAccentUsesLinkColor", testColorSettingsThemeAccentUsesLinkColor),
             ("AppearanceInspectorLayoutClamp", testAppearanceInspectorLayoutClamp),
+            ("AppPreferencesScrollSyncDefaultsLinked", testAppPreferencesScrollSyncDefaultsLinked),
+            ("AppPreferencesScrollSyncReadsStoredValue", testAppPreferencesScrollSyncReadsStoredValue),
             ("ScrollSyncControllerStartsLinked", testScrollSyncControllerStartsLinked),
+            ("ScrollSyncControllerCanStartUnlinked", testScrollSyncControllerCanStartUnlinked),
             ("ScrollSyncControllerSyncsPreviewByDefault", testScrollSyncControllerSyncsPreviewByDefault),
             ("EditorViewClampsSelectionAfterProgrammaticTextReplacement", testEditorViewClampsSelectionAfterProgrammaticTextReplacement),
             ("DocumentReloadingReadsLatestUTF8Text", testDocumentReloadingReadsLatestUTF8Text),
             ("DocumentReloadingHandlesMissingFileURL", testDocumentReloadingHandlesMissingFileURL),
             ("DocumentReloadingSaveText", testDocumentReloadingSaveText),
-            ("DocumentReloadingConfirmationPolicy", testDocumentReloadingConfirmationPolicy),
             ("DocumentReloadingExternalFileStatePolicy", testDocumentReloadingExternalFileStatePolicy),
             ("ReloadConflictMonitorTransitions", testReloadConflictMonitorTransitions),
             ("ReloadConflictMonitorKeepsCurrentStickyAcrossLaterDiskWrites", testReloadConflictMonitorKeepsCurrentStickyAcrossLaterDiskWrites),
             ("ReloadConflictMonitorDetectsUnavailableFile", testReloadConflictMonitorDetectsUnavailableFile),
+            ("ContentViewPersistsGlobalUIPreferences", testContentViewPersistsGlobalUIPreferences),
+            ("PreviewBackgroundAppliesBeforeRender", testPreviewBackgroundAppliesBeforeRender),
             ("SaveMineUsesDocumentSaveCoordinator", testSaveMineUsesDocumentSaveCoordinator),
             ("EditorPreviewPanelModeVisibility", testEditorPreviewPanelModeVisibility)
         ]

@@ -72,7 +72,10 @@ enum PreviewURLPolicy {
         }
 
         let normalizedFileURL = fileURL.resolvingSymlinksInPath().standardizedFileURL
-        let normalizedBaseURL = documentBaseURL.resolvingSymlinksInPath().standardizedFileURL
+        let resourceBaseURL = documentBaseURL.lastPathComponent == "md"
+            ? documentBaseURL.deletingLastPathComponent()
+            : documentBaseURL
+        let normalizedBaseURL = resourceBaseURL.resolvingSymlinksInPath().standardizedFileURL
         guard isFileURL(normalizedFileURL, containedIn: normalizedBaseURL) else {
             return nil
         }

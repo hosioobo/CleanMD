@@ -75,6 +75,27 @@ final class PreviewURLPolicyTests: XCTestCase {
         )
     }
 
+    func testLocalPreviewResourceAllowsSiblingAssetsForScrapedMarkdownFolder() {
+        let documentURL = URL(fileURLWithPath: "/tmp/archive/project/md/guide.md")
+        let documentBaseURL = PreviewURLPolicy.documentBaseURL(for: documentURL)
+        let siblingAssetURL = URL(fileURLWithPath: "/tmp/archive/project/assets/guide/image-01.jpg")
+        let outsideURL = URL(fileURLWithPath: "/tmp/archive/other/image-01.jpg")
+
+        XCTAssertEqual(
+            PreviewURLPolicy.localPreviewResourceURL(
+                fromLocalPreviewURL: PreviewURLPolicy.localPreviewURL(for: siblingAssetURL),
+                documentBaseURL: documentBaseURL
+            ),
+            siblingAssetURL.standardizedFileURL
+        )
+        XCTAssertNil(
+            PreviewURLPolicy.localPreviewResourceURL(
+                fromLocalPreviewURL: PreviewURLPolicy.localPreviewURL(for: outsideURL),
+                documentBaseURL: documentBaseURL
+            )
+        )
+    }
+
     func testResolvesRelativeImageAgainstDocumentFolderWithUnicodeAndSpaces() {
         let fileURL = URL(fileURLWithPath: "/tmp/docs/guide.md")
         let expectedURL = URL(fileURLWithPath: "/tmp/docs/이미지 폴더/테스트 이미지 #1.png").standardizedFileURL
